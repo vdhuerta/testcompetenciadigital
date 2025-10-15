@@ -48,7 +48,7 @@ export const handler: Handler = async (event) => {
         return { statusCode: 400, body: 'Bad Request: areaScores is missing or invalid.' };
     }
 
-    const apiKey = process.env.API_KEY;
+    const apiKey = import.meta.env.API_KEY;
     if (!apiKey) {
       throw new Error("API key not configured.");
     }
