@@ -59,6 +59,9 @@ export const handler: Handler = async (event) => {
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
+        config: {
+            thinkingConfig: { thinkingBudget: 0 }
+        }
     });
     
     const plan = response.text;
