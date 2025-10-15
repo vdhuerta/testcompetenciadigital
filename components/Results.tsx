@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import type { Area } from '../types';
 import { RECOMMENDATIONS } from '../recommendations';
@@ -185,30 +186,23 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Error from server: ${response.statusText}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Error del servidor: ${response.statusText}`);
       }
       
-      if (!response.body) {
-        throw new Error("Response body is empty.");
+      const data = await response.json();
+
+      if (!data.plan) {
+        throw new Error("La respuesta de la IA está vacía o es inválida.");
       }
       
-      setIsAiLoading(false); // Stop loading spinner once stream starts
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        const chunk = decoder.decode(value, { stream: true });
-        setAiPlan(prevPlan => prevPlan + chunk);
-      }
+      setAiPlan(data.plan);
 
     } catch (err) {
       console.error("Error fetching AI recommendations:", err);
       setAiError("Lo sentimos, no se pudo generar el plan de desarrollo. Por favor, inténtalo de nuevo más tarde.");
-      setIsAiLoading(false);
+    } finally {
+        setIsAiLoading(false);
     }
   };
   

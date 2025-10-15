@@ -1,4 +1,4 @@
-// FIX: Update netlify functions import to support streaming responses
+
 import { GoogleGenAI } from '@google/genai';
 import type { Context } from '@netlify/functions';
 
@@ -37,7 +37,6 @@ const generatePrompt = (scores: AreaScore[]): string => {
     `;
 };
 
-// FIX: Update function signature to use Request/Response API for streaming, which resolves the type error.
 export const handler = async (request: Request, context: Context): Promise<Response> => {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -47,7 +46,10 @@ export const handler = async (request: Request, context: Context): Promise<Respo
     const { areaScores } = await request.json();
     
     if (!areaScores || !Array.isArray(areaScores) || areaScores.length === 0) {
-        return new Response('Bad Request: areaScores is missing or invalid.', { status: 400 });
+        return new Response(JSON.stringify({ error: 'Bad Request: areaScores is missing or invalid.' }), { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json' } 
+        });
     }
 
     const apiKey = process.env.API_KEY;
@@ -58,31 +60,20 @@ export const handler = async (request: Request, context: Context): Promise<Respo
     const ai = new GoogleGenAI({ apiKey });
     const prompt = generatePrompt(areaScores);
 
-    const geminiStream = await ai.models.generateContentStream({
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             thinkingConfig: { thinkingBudget: 0 }
         }
     });
-    
-    const responseStream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        for await (const chunk of geminiStream) {
-            const text = chunk.text;
-            if (text) {
-                controller.enqueue(encoder.encode(text));
-            }
-        }
-        controller.close();
-      }
-    });
 
-    return new Response(responseStream, {
+    const text = response.text;
+
+    return new Response(JSON.stringify({ plan: text }), {
       status: 200,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'application/json',
       },
     });
 
