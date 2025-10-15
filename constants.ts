@@ -1,0 +1,113 @@
+import type { Area } from './types';
+import { BookOpenIcon, BriefcaseIcon, LightBulbIcon, PresentationChartLineIcon, SparklesIcon, UsersIcon, GlobeAltIcon } from './components/icons/Icons';
+
+export const COUNTRIES = ['Chile', 'España', 'México', 'Argentina', 'Colombia'];
+
+export const UNIVERSITIES_CHILE = [
+  'Pontificia Universidad Católica de Chile',
+  'Universidad de Chile',
+  'Universidad de Concepción',
+  'Universidad de Santiago de Chile',
+  'Pontificia Universidad Católica de Valparaíso',
+  'Universidad Adolfo Ibáñez',
+  'Universidad de los Andes',
+];
+
+const options = [
+  "No tengo experiencia / Desconozco",
+  "Soy consciente de su potencial, pero necesito guía",
+  "Lo he probado y empiezo a usarlo",
+  "Lo uso con autonomía en diferentes contextos",
+  "Lo uso con confianza, de forma creativa y crítica",
+  "Soy un referente para otros en su uso"
+];
+
+export const AREAS: Area[] = [
+  {
+    id: 1,
+    title: 'Compromiso Profesional',
+    shortTitle: 'Compromiso Prof.',
+    description: 'Uso de tecnologías digitales para la comunicación, colaboración y desarrollo profesional.',
+    icon: BriefcaseIcon,
+    questions: [
+      { id: 101, text: 'Utilizo diferentes canales digitales para mejorar la comunicación con los estudiantes y compañeros cuando es necesario. (Por ejemplo: correos electrónicos, blogs, el sitio web de la organización educativa, sistema de gestión del aprendizaje –LMS-, apps, etc.).', options },
+      { id: 102, text: 'Utilizo tecnologías digitales para trabajar con otros compañeros, compartir conocimientos y experiencias y colaborar en la creación de recursos y en la mejora de la práctica pedagógica. (Por ejemplo: documentos compartidos en línea, plataformas para equipos, comunidades de práctica en línea, redes sociales, etc.).', options },
+      { id: 103, text: 'Utilizo tecnologías digitales para registrar y reflexionar sobre mi práctica pedagógica (individual o colectivamente) con el fin de mejorarla. (Por ejemplo: blogs, e-portfolios, foros en línea, grupos de video-observación, etc.).', options },
+      { id: 104, text: 'Utilizo tecnologías digitales para identificar mis propias necesidades de desarrollo profesional y las oportunidades de formación, así como para mejorar y actualizar mi práctica pedagógica. (Por ejemplo: comunidades en línea, cursos en línea -MOOCs-, videotutoriales, seminarios web, publicaciones en línea, etc.).', options },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Recursos Digitales',
+    shortTitle: 'Recursos Dig.',
+    description: 'Búsqueda, creación y compartición de recursos digitales.',
+    icon: BookOpenIcon,
+    questions: [
+      { id: 201, text: 'Busco y selecciono recursos educativos digitales adecuados para los objetivos, la estrategia pedagógica y los estudiantes.', options },
+      { id: 202, text: 'Creo o modifico recursos educativos digitales, respetando los términos y condiciones de su uso (derechos de autor y licencias).', options },
+      { id: 203, text: 'Protejo, gestiono y comparto recursos educativos digitales de forma efectiva y segura para ponerlos a disposición de los estudiantes, sus familias y otros docentes.', options },
+    ],
+  },
+  {
+    id: 3,
+    title: 'Enseñanza y Aprendizaje',
+    shortTitle: 'Enseñanza',
+    description: 'Gestión y organización del uso de tecnologías digitales en la enseñanza y el aprendizaje.',
+    icon: PresentationChartLineIcon,
+    questions: [
+      { id: 301, text: 'Planifico e implemento el uso de tecnologías digitales en diferentes momentos y formatos del proceso de enseñanza-aprendizaje.', options },
+      { id: 302, text: 'Utilizo las tecnologías digitales para ofrecer orientación y apoyo a los estudiantes, tanto de forma individual como en grupo, dentro y fuera del espacio del aula.', options },
+      { id: 303, text: 'Utilizo las tecnologías digitales para fomentar y mejorar la colaboración entre los estudiantes, permitiéndoles trabajar juntos en distintas tareas y actividades.', options },
+      { id: 304, text: 'Utilizo las tecnologías digitales para ayudar a los estudiantes a aprender a aprender, permitiéndoles planificar, supervisar y reflexionar sobre su propio aprendizaje, así como registrar y mostrar sus progresos.', options },
+    ],
+  },
+  {
+    id: 4,
+    title: 'Evaluación',
+    shortTitle: 'Evaluación',
+    description: 'Uso de tecnologías y estrategias digitales para mejorar la evaluación.',
+    icon: LightBulbIcon,
+    questions: [
+      { id: 401, text: 'Utilizo tecnologías digitales para evaluar los conocimientos y competencias de los estudiantes, así como para realizar un seguimiento de su progreso, utilizando una variedad de formatos de evaluación.', options },
+      { id: 402, text: 'Utilizo los datos generados durante los procesos de enseñanza-aprendizaje digital para comprender el comportamiento de los estudiantes, identificar a los que tienen dificultades y supervisar su progreso.', options },
+      { id: 403, text: 'Utilizo las tecnologías digitales para proporcionar a los estudiantes una retroalimentación oportuna y eficaz sobre sus tareas, actividades o sobre su progreso en el aprendizaje.', options },
+    ],
+  },
+  {
+    id: 5,
+    title: 'Empoderamiento del Alumnado',
+    shortTitle: 'Empoderam.',
+    description: 'Uso de tecnologías digitales para la inclusión, atención a las diferencias personales y el compromiso activo del alumnado.',
+    icon: SparklesIcon,
+    questions: [
+      { id: 501, text: 'Utilizo tecnologías digitales para garantizar la accesibilidad a los recursos y actividades de aprendizaje a todos los estudiantes, incluidos aquellos con necesidades especiales.', options },
+      { id: 502, text: 'Utilizo tecnologías digitales para atender las diversas necesidades de aprendizaje de los estudiantes, permitiéndoles avanzar a diferentes ritmos y por diferentes vías de aprendizaje.', options },
+      { id: 503, text: 'Utilizo las tecnologías digitales para fomentar el compromiso activo y creativo de los estudiantes en un tema o materia determinada, a través de la investigación de temas complejos, la resolución de problemas o la creación de artefactos digitales.', options },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Desarrollo de Competencias',
+    shortTitle: 'Desarrollo Comp.',
+    description: 'Capacitar al alumnado para utilizar las tecnologías digitales de forma creativa y responsable.',
+    icon: UsersIcon,
+    questions: [
+      { id: 601, text: 'Incorporo actividades de aprendizaje, tareas y evaluaciones que requieren que los estudiantes articulen sus necesidades de información; que encuentren información y recursos en entornos digitales; y que organicen, procesen, analicen e interpreten la información.', options },
+      { id: 602, text: 'Incorporo actividades de aprendizaje, tareas y evaluaciones que requieren que los estudiantes utilicen las tecnologías digitales de forma colaborativa y comunicativa.', options },
+      { id: 603, text: 'Incorporo actividades de aprendizaje, tareas y evaluaciones que requieren que los estudiantes se expresen a través de medios digitales y que modifiquen y creen contenidos digitales en diferentes formatos.', options },
+      { id: 604, text: 'Tomo medidas para garantizar el bienestar físico, psicológico y social de los estudiantes en el uso de las tecnologías digitales y les enseño cómo hacerlo ellos mismos.', options },
+    ],
+  },
+  {
+    id: 7,
+    title: 'Educación Abierta',
+    shortTitle: 'Educ. Abierta',
+    description: 'Uso de recursos, prácticas y ciencia abierta para democratizar la educación.',
+    icon: GlobeAltIcon,
+    questions: [
+        { id: 701, text: 'Utilizo, creo y comparto Recursos Educativos Abiertos (REA), entendiendo y aplicando licencias abiertas.', options },
+        { id: 702, text: 'Diseño actividades de aprendizaje que involucran a los estudiantes en prácticas abiertas, como la creación colaborativa de conocimiento o el aprendizaje en comunidades en línea.', options },
+        { id: 703, text: 'Promuevo los principios de la ciencia abierta, como el acceso libre a publicaciones y la colaboración científica transparente, adaptándolos al nivel educativo.', options },
+    ],
+  },
+];

@@ -1,0 +1,5 @@
+{
+  "name": "Autoevaluación Competencia Digital",
+  "description": "A web application for the self-assessment of Digital Competencies for Teachers (DigCompEdu), allowing users to evaluate their skills across six different areas.",
+  "requestFramePermissions": []
+}
