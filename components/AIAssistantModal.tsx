@@ -24,12 +24,16 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ recommendati
       return <div className="p-8 text-center text-red-600 bg-red-50 rounded-lg">{error}</div>;
     }
     
-    // Replace markdown-like formatting with simple HTML for display
+    // This robustly formats the AI-generated markdown into clean HTML for live preview.
     const formattedRecommendations = recommendations
-      .replace(/## (.*)/g, '<h2 class="text-xl font-bold text-slate-800 mt-6 mb-3">$1</h2>')
+      .replace(/([.?!"])\s*(\*\*)/g, '$1\n\n$2')
+      .replace(/^## (.*)$/gm, '<h2 class="text-xl font-bold text-slate-800 mt-6 mb-3">$1</h2>')
       .replace(/\*\*([^\*]+)\*\*/g, '<strong class="font-semibold text-slate-700">$1</strong>')
-      .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
-      .replace(/\n/g, '<br />');
+      .replace(/^\s*\*\s(.*)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>(?:\s*<li>.*<\/li>)*)/g, '<ul>$1</ul>')
+      .replace(/\n/g, '<br />')
+      .replace(/<br \/>\s*<ul>/g, '<ul>')
+      .replace(/<\/ul>\s*<br \/>/g, '</ul>');
 
     return (
         <div className="prose prose-sm max-w-none text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedRecommendations }} />

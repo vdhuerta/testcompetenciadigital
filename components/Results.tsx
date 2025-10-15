@@ -188,13 +188,26 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
         throw new Error(`Error from server: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      setAiPlan(data.plan);
+      if (!response.body) {
+        throw new Error("Response body is empty.");
+      }
+      
+      setIsAiLoading(false); // Stop loading spinner once stream starts
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        const chunk = decoder.decode(value, { stream: true });
+        setAiPlan(prevPlan => prevPlan + chunk);
+      }
 
     } catch (err) {
       console.error("Error fetching AI recommendations:", err);
       setAiError("Lo sentimos, no se pudo generar el plan de desarrollo. Por favor, inténtalo de nuevo más tarde.");
-    } finally {
       setIsAiLoading(false);
     }
   };
@@ -210,7 +223,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
             <div class="p-5 border-b-4" style="border-color: ${cardColors[index % cardColors.length]};">
               <h3 class="text-xl font-bold text-slate-800">${area.title}</h3>
               <div class="flex justify-between items-baseline mt-2">
-                <span class="text-lg font-semibold text-${levelColorClass}-500">${area.level.name}</span>
+                <span class="text-lg font-semibold text-${levelColorClass}">${area.level.name}</span>
                 <span class="text-sm font-bold text-slate-600">Puntuación: ${area.score} / ${MAX_SCORE}</span>
               </div>
             </div>
@@ -246,24 +259,22 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Plan de Desarrollo Profesional</title>
           <script src="https://cdn.tailwindcss.com"></script>
-          <script>
-            tailwind.config = {
-              theme: {
-                extend: {
-                  colors: {
-                    'brand-primary': '#0ea5e9', 'brand-secondary': '#14b8a6', 'brand-accent': '#8b5cf6',
-                    'sky-500': '#0ea5e9', 'teal-500': '#14b8a6', 'violet-500': '#8b5cf6', 'rose-500': '#e11d48', 'amber-500': '#f59e0b', 'lime-500': '#84cc16', 'indigo-500': '#6366f1'
-                  },
-                }
-              }
-            }
-          </script>
+          <style>
+            .text-rose-500 { color: #f43f5e; }
+            .text-amber-500 { color: #f59e0b; }
+            .text-teal-500 { color: #14b8a6; }
+          </style>
         </head>
         <body class="bg-slate-100 font-sans p-4 sm:p-8">
           <main class="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-lg">
             <header class="text-center border-b-2 border-slate-200 pb-6 mb-10">
               <h1 class="text-4xl font-extrabold text-slate-800">Plan de Desarrollo Profesional</h1>
               <p class="mt-3 text-lg text-slate-500">Análisis de competencias y plan de acción personalizado basado en el marco DigCompEdu.</p>
+              <div class="mt-6">
+                <span class="inline-block bg-slate-100 text-slate-600 rounded-full px-4 py-2 text-lg">
+                  Nivel General: <strong class="${overallLevel.color}">${overallLevel.name}</strong>
+                </span>
+              </div>
             </header>
 
             <section>

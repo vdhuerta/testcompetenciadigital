@@ -1,5 +1,6 @@
+// FIX: Update netlify functions import to support streaming responses
 import { GoogleGenAI } from '@google/genai';
-import type { Handler } from '@netlify/functions';
+import type { Context } from '@netlify/functions';
 
 // Definimos el tipo para los puntajes que esperamos recibir
 type AreaScore = {
@@ -36,16 +37,17 @@ const generatePrompt = (scores: AreaScore[]): string => {
     `;
 };
 
-export const handler: Handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+// FIX: Update function signature to use Request/Response API for streaming, which resolves the type error.
+export const handler = async (request: Request, context: Context): Promise<Response> => {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
   }
 
   try {
-    const { areaScores } = JSON.parse(event.body || '{}');
+    const { areaScores } = await request.json();
     
     if (!areaScores || !Array.isArray(areaScores) || areaScores.length === 0) {
-        return { statusCode: 400, body: 'Bad Request: areaScores is missing or invalid.' };
+        return new Response('Bad Request: areaScores is missing or invalid.', { status: 400 });
     }
 
     const apiKey = process.env.API_KEY;
@@ -56,7 +58,7 @@ export const handler: Handler = async (event) => {
     const ai = new GoogleGenAI({ apiKey });
     const prompt = generatePrompt(areaScores);
 
-    const response = await ai.models.generateContent({
+    const geminiStream = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -64,18 +66,33 @@ export const handler: Handler = async (event) => {
         }
     });
     
-    const plan = response.text;
+    const responseStream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        for await (const chunk of geminiStream) {
+            const text = chunk.text;
+            if (text) {
+                controller.enqueue(encoder.encode(text));
+            }
+        }
+        controller.close();
+      }
+    });
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ plan }),
-    };
+    return new Response(responseStream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
 
   } catch (error) {
     console.error("Error in Netlify function:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Failed to generate AI plan." }),
-    };
+    return new Response(JSON.stringify({ error: "Failed to generate AI plan." }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 };
