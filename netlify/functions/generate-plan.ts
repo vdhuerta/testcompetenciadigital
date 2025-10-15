@@ -11,7 +11,7 @@ type AreaScore = {
 
 // La función para generar el prompt se copia aquí, en el backend
 const generatePrompt = (scores: AreaScore[]): string => {
-  const scoresText = scores.map(s => `- ${s.title}: Puntuación ${s.score} de 5 (Nivel: ${s.level.name})`).join('\\n');
+  const scoresText = scores.map(s => `- ${s.title}: Puntuación ${s.score} de 5 (Nivel: ${s.level.name})`).join('\n');
 
   return `
     Actúe como un académico experto en tecnología educativa y diseño curricular, con nivel de doctorado. Su análisis debe ser formal, preciso y basado en evidencia pedagógica.

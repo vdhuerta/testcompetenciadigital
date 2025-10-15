@@ -1,3 +1,6 @@
+// FIX: Import React to resolve 'Cannot find namespace React' error.
+import React from 'react';
+
 export interface Question {
   id: number;
   text: string;

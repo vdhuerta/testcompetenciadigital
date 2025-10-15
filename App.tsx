@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
@@ -55,13 +56,6 @@ export default function App(): React.ReactElement {
     const answeredCount = Object.keys(answers).length;
     return totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
   }, [answers]);
-  
-  useEffect(() => {
-    if (overallProgress >= 100 && !hasShownCompletionModal) {
-      setIsCompletionModalOpen(true);
-      setHasShownCompletionModal(true);
-    }
-  }, [overallProgress, hasShownCompletionModal]);
 
   const handleOnboardingComplete = (data: UserData) => {
     setUserData(data);
@@ -83,6 +77,10 @@ export default function App(): React.ReactElement {
 
   const handleCloseModal = () => {
     setActiveArea(null);
+    if (overallProgress >= 100 && !hasShownCompletionModal) {
+      setIsCompletionModalOpen(true);
+      setHasShownCompletionModal(true);
+    }
   };
 
   const handleAnswerChange = (questionId: number, optionIndex: number) => {
@@ -153,8 +151,10 @@ export default function App(): React.ReactElement {
 
     const areasInProgress = Object.entries(progressByArea)
       .map(([id, progress]) => ({ id: Number(id), progress }))
-      .filter(p => p.progress > 0 && p.progress < 100)
-      .sort((a, b) => a.progress - b.progress);
+      // FIX: Cast `p.progress` to number. Under strict type checking, its type was inferred as `unknown`, causing comparison errors.
+      .filter(p => (p.progress as number) > 0 && (p.progress as number) < 100)
+      // FIX: Cast `progress` properties to number. Under strict type checking, their types were inferred as `unknown`, causing arithmetic errors.
+      .sort((a, b) => (a.progress as number) - (b.progress as number));
 
     if (areasInProgress.length > 0) {
         const leastProgressAreaId = areasInProgress[0].id;
