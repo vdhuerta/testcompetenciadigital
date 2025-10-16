@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { SearchIcon, BellIcon } from './icons/Icons';
+import { SearchIcon, BellIcon, MenuIcon } from './icons/Icons';
 import type { SearchResult, Notification } from '../types';
 
 interface HeaderProps {
@@ -8,6 +9,7 @@ interface HeaderProps {
   searchResults: SearchResult[];
   onSearchResultClick: (result: SearchResult) => void;
   notifications: Notification[];
+  onMenuClick: () => void;
 }
 
 const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) => {
@@ -26,7 +28,7 @@ const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) =
   );
 };
 
-export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, searchResults, onSearchResultClick, notifications }) => {
+export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, searchResults, onSearchResultClick, notifications, onMenuClick }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -56,7 +58,14 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, sea
     <header className="flex-shrink-0 bg-white shadow-sm z-10">
       <div className="flex items-center justify-between p-4 h-20">
         <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-slate-700">Herramienta de Autoevaluación de Competencias Digitales</h1>
+            <button 
+                onClick={onMenuClick} 
+                className="md:hidden mr-4 p-2 rounded-full text-slate-500 hover:bg-slate-100"
+                aria-label="Abrir menú"
+            >
+                <MenuIcon className="h-6 w-6" />
+            </button>
+            <h1 className="hidden md:block text-xl font-semibold text-slate-700">Herramienta de Autoevaluación de Competencias Digitales</h1>
         </div>
         <div className="flex items-center space-x-4">
           <div className="relative hidden md:block" ref={searchRef}>

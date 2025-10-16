@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
@@ -11,6 +10,7 @@ import { QuestionModal } from './components/QuestionModal';
 import { ProgressBar } from './components/ProgressBar';
 import { CompletionModal } from './components/CompletionModal';
 import { ResetConfirmationModal } from './components/ResetConfirmationModal';
+import { MobileMenu } from './components/MobileMenu';
 import { AREAS } from './constants';
 import type { UserData, Area, AppView, SearchResult, Notification } from './types';
 import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon } from './components/icons/Icons';
@@ -35,6 +35,7 @@ export default function App(): React.ReactElement {
       return localStorage.getItem('hasShownCompletionModal') === 'true';
   });
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (userData) {
@@ -235,6 +236,13 @@ export default function App(): React.ReactElement {
         onNavigate={handleNavigate} 
         onReset={handleRequestReset}
       />
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        currentView={currentView}
+        onNavigate={handleNavigate}
+        onReset={handleRequestReset}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
             searchQuery={searchQuery}
@@ -242,12 +250,16 @@ export default function App(): React.ReactElement {
             searchResults={searchResults}
             onSearchResultClick={handleSearchResultClick}
             notifications={notifications}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8 lg:p-12">
           <div className="max-w-7xl mx-auto">
             {currentView === 'dashboard' && (
               <>
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-800">Autoevaluación Digital</h1>
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+                  <span className="md:hidden">Autoevaluación de CD</span>
+                  <span className="hidden md:inline">Autoevaluación Digital</span>
+                </h1>
                 <p className="mt-2 text-slate-500">Evalúa tus competencias digitales como docente.</p>
                 
                 <div className="mt-8">
