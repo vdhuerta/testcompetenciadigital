@@ -5,14 +5,15 @@ import { Header } from './components/Header';
 import { AreaCard } from './components/AreaCard';
 import { AreaList } from './components/AreaList';
 import { Results } from './components/Results';
+import { TaskPlan } from './components/TaskPlan';
 import { QuestionModal } from './components/QuestionModal';
 import { ProgressBar } from './components/ProgressBar';
 import { CompletionModal } from './components/CompletionModal';
 import { ResetConfirmationModal } from './components/ResetConfirmationModal';
 import { MobileMenu } from './components/MobileMenu';
 import { AREAS } from './constants';
-import type { UserData, Area, AppView, SearchResult, Notification, PlanState } from './types';
-import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon } from './components/icons/Icons';
+import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task } from './types';
+import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
   const [userData, setUserData] = useState<UserData | null>(() => {
@@ -46,6 +47,11 @@ export default function App(): React.ReactElement {
     const saved = localStorage.getItem('areaPlans');
     return saved ? JSON.parse(saved) : {};
   });
+  
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    const saved = localStorage.getItem('tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
 
 
   useEffect(() => {
@@ -71,6 +77,10 @@ export default function App(): React.ReactElement {
   useEffect(() => {
       localStorage.setItem('areaPlans', JSON.stringify(areaPlans));
   }, [areaPlans]);
+
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
   
   const totalQuestions = useMemo(() => AREAS.reduce((sum, area) => sum + area.questions.length, 0), []);
   const answeredCount = Object.keys(answers).length;
@@ -78,6 +88,12 @@ export default function App(): React.ReactElement {
   const overallProgress = useMemo(() => {
     return totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
   }, [answeredCount, totalQuestions]);
+  
+  const taskProgress = useMemo(() => {
+    if (tasks.length === 0) return 0;
+    const completedCount = tasks.filter(t => t.completed).length;
+    return (completedCount / tasks.length) * 100;
+  }, [tasks]);
 
   const handleOnboardingComplete = (data: UserData) => {
     setUserData(data);
@@ -123,12 +139,14 @@ export default function App(): React.ReactElement {
     localStorage.removeItem('hasShownCompletionModal');
     localStorage.removeItem('planSummary');
     localStorage.removeItem('areaPlans');
+    localStorage.removeItem('tasks');
     
     setUserData(null);
     setAnswers({});
     setHasShownCompletionModal(false);
     setPlanSummary({ content: '', isLoading: false, error: null });
     setAreaPlans({});
+    setTasks([]);
     setCurrentView('dashboard');
 
     setIsResetModalOpen(false);
@@ -159,6 +177,15 @@ export default function App(): React.ReactElement {
             text: `Llevas un ${progressInt}% completado. ¡Sigue así!`,
             time: 'hace un momento',
             icon: ChartBarIcon,
+        });
+    }
+    
+    if (tasks.length > 0) {
+        alerts.push({
+            id: 'task-progress',
+            text: `Llevas un ${Math.round(taskProgress)}% de tu plan de tareas completado.`,
+            time: 'plan de acción',
+            icon: CheckBadgeIcon,
         });
     }
 
@@ -195,7 +222,7 @@ export default function App(): React.ReactElement {
 
 
     return alerts.slice(0, 4);
-  }, [overallProgress, progressByArea, answeredCount, totalQuestions]);
+  }, [overallProgress, progressByArea, answeredCount, totalQuestions, tasks, taskProgress]);
 
   const filteredAreas = useMemo(() => {
     if (!searchQuery) return AREAS;
@@ -333,6 +360,16 @@ export default function App(): React.ReactElement {
                 setPlanSummary={setPlanSummary}
                 areaPlans={areaPlans}
                 setAreaPlans={setAreaPlans}
+              />
+            )}
+            {currentView === 'tasks' && (
+              <TaskPlan
+                planSummary={planSummary}
+                areaPlans={areaPlans}
+                areas={AREAS}
+                tasks={tasks}
+                setTasks={setTasks}
+                taskProgress={taskProgress}
               />
             )}
           </div>

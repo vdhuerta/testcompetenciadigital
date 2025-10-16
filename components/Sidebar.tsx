@@ -1,5 +1,5 @@
 import React from 'react';
-import { MenuIcon, UserCircleIcon, ChartBarIcon, HomeIcon, TrashIcon } from './icons/Icons';
+import { MenuIcon, UserCircleIcon, ChartBarIcon, HomeIcon, TrashIcon, CheckBadgeIcon } from './icons/Icons';
 import type { AppView } from '../types';
 
 interface SidebarIconProps {
@@ -66,6 +66,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onRes
                     text="Resultados"
                     onClick={() => onNavigate('results')}
                     isActive={currentView === 'results'}
+                 />
+                 <SidebarIcon 
+                    icon={<CheckBadgeIcon className="h-6 w-6"/>} 
+                    text="Plan de Tareas"
+                    onClick={() => onNavigate('tasks')}
+                    isActive={currentView === 'tasks'}
                  />
             </div>
             <div className="pb-4">

@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { HomeIcon, MenuIcon as AreasIcon, UserCircleIcon, ChartBarIcon, TrashIcon, XIcon } from './icons/Icons';
+import { HomeIcon, MenuIcon as AreasIcon, UserCircleIcon, ChartBarIcon, TrashIcon, XIcon, CheckBadgeIcon } from './icons/Icons';
 import type { AppView } from '../types';
 
 interface MobileMenuProps {
@@ -84,6 +83,12 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, current
                       text="Resultados"
                       onClick={() => handleNavigate('results')}
                       isActive={currentView === 'results'}
+                  />
+                  <NavItem 
+                      icon={<CheckBadgeIcon className="h-6 w-6"/>} 
+                      text="Plan de Tareas"
+                      onClick={() => handleNavigate('tasks')}
+                      isActive={currentView === 'tasks'}
                   />
               </nav>
 

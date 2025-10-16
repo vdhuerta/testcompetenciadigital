@@ -25,7 +25,7 @@ export interface Answer {
   optionIndex: number;
 }
 
-export type AppView = 'dashboard' | 'areas' | 'profile' | 'results';
+export type AppView = 'dashboard' | 'areas' | 'profile' | 'results' | 'tasks';
 
 export interface SearchResult {
   type: 'area' | 'question';
@@ -68,4 +68,11 @@ export interface PlanState {
   content: string;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface Task {
+  id: string;
+  text: string;
+  completed: boolean;
+  areaTitle: string;
 }
