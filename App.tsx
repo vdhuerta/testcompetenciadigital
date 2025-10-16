@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
@@ -12,7 +11,7 @@ import { CompletionModal } from './components/CompletionModal';
 import { ResetConfirmationModal } from './components/ResetConfirmationModal';
 import { MobileMenu } from './components/MobileMenu';
 import { AREAS } from './constants';
-import type { UserData, Area, AppView, SearchResult, Notification } from './types';
+import type { UserData, Area, AppView, SearchResult, Notification, PlanState } from './types';
 import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
@@ -37,6 +36,18 @@ export default function App(): React.ReactElement {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // State for persisting the generated AI plan
+  const [planSummary, setPlanSummary] = useState<PlanState>(() => {
+    const saved = localStorage.getItem('planSummary');
+    return saved ? JSON.parse(saved) : { content: '', isLoading: false, error: null };
+  });
+
+  const [areaPlans, setAreaPlans] = useState<Record<number, PlanState>>(() => {
+    const saved = localStorage.getItem('areaPlans');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+
   useEffect(() => {
     if (userData) {
       localStorage.setItem('userData', JSON.stringify(userData));
@@ -52,6 +63,14 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     localStorage.setItem('hasShownCompletionModal', String(hasShownCompletionModal));
   }, [hasShownCompletionModal]);
+
+  useEffect(() => {
+    localStorage.setItem('planSummary', JSON.stringify(planSummary));
+  }, [planSummary]);
+
+  useEffect(() => {
+      localStorage.setItem('areaPlans', JSON.stringify(areaPlans));
+  }, [areaPlans]);
   
   const totalQuestions = useMemo(() => AREAS.reduce((sum, area) => sum + area.questions.length, 0), []);
   const answeredCount = Object.keys(answers).length;
@@ -102,10 +121,14 @@ export default function App(): React.ReactElement {
     localStorage.removeItem('userData');
     localStorage.removeItem('answers');
     localStorage.removeItem('hasShownCompletionModal');
+    localStorage.removeItem('planSummary');
+    localStorage.removeItem('areaPlans');
     
     setUserData(null);
     setAnswers({});
     setHasShownCompletionModal(false);
+    setPlanSummary({ content: '', isLoading: false, error: null });
+    setAreaPlans({});
     setCurrentView('dashboard');
 
     setIsResetModalOpen(false);
@@ -306,6 +329,10 @@ export default function App(): React.ReactElement {
               <Results
                 answers={answers}
                 areas={AREAS}
+                planSummary={planSummary}
+                setPlanSummary={setPlanSummary}
+                areaPlans={areaPlans}
+                setAreaPlans={setAreaPlans}
               />
             )}
           </div>

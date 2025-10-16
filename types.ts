@@ -63,3 +63,9 @@ export interface GeneratePlanPayload {
     score: number;
   };
 }
+
+export interface PlanState {
+  content: string;
+  isLoading: boolean;
+  error: string | null;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Area, GenerateSummaryPayload, GeneratePlanPayload } from '../types';
+import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState } from '../types';
 import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
 
@@ -7,6 +7,10 @@ import { SparklesIcon, DownloadIcon } from './icons/Icons';
 interface ResultsProps {
   answers: Record<number, number>;
   areas: Area[];
+  planSummary: PlanState;
+  setPlanSummary: React.Dispatch<React.SetStateAction<PlanState>>;
+  areaPlans: Record<number, PlanState>;
+  setAreaPlans: React.Dispatch<React.SetStateAction<Record<number, PlanState>>>;
 }
 
 const getProficiencyLevel = (score: number): { name: string; code: string; description: string; key: 'novice' | 'integrator' | 'expert' } => {
@@ -57,15 +61,7 @@ const PlanSkeletonLoader: React.FC = () => (
 );
 
 
-export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
-  interface PlanState {
-    content: string;
-    isLoading: boolean;
-    error: string | null;
-  }
-  
-  const [planSummary, setPlanSummary] = useState<PlanState>({ content: '', isLoading: false, error: null });
-  const [areaPlans, setAreaPlans] = useState<Record<number, PlanState>>({});
+export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, setPlanSummary, areaPlans, setAreaPlans }) => {
   const [isGeneratingPlans, setIsGeneratingPlans] = useState(false);
   
   const areaScores = useMemo(() => {
@@ -213,7 +209,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
     } finally {
         setIsGeneratingPlans(false);
     }
-  }, [areaScores, areas]);
+  }, [areaScores, areas, setPlanSummary, setAreaPlans]);
 
   const handleDownloadPlan = useCallback(() => {
     if (!allPlansGenerated) {

@@ -36,22 +36,26 @@ export const AreaList: React.FC<AreaListProps> = ({ areas, progressByArea, onSel
             onClick={() => onSelectArea(area)}
             className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer p-4 border border-slate-200"
           >
-            <div className="flex items-start sm:items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="flex items-center flex-1">
                 <div className="flex-shrink-0 h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: cardColors[index % cardColors.length] }}>
                     <area.icon className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex-grow">
-                    <h3 className="text-lg font-semibold text-slate-800">{area.title}</h3>
-                    <p className="text-sm text-slate-500 mt-1 hidden sm:block">{area.description}</p>
+                <div className="ml-4">
+                  <h3 className="text-lg font-semibold text-slate-800">{area.title}</h3>
+                  <p className="text-sm text-slate-500 mt-1 hidden sm:block">{area.description}</p>
                 </div>
-                <div className="w-full sm:w-40 flex-shrink-0">
-                    <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
-                        <span>Progreso</span>
-                        <span>{Math.round(progressByArea[area.id] || 0)}%</span>
-                    </div>
-                    <ProgressBar percentage={progressByArea[area.id] || 0} color={`bg-[${cardColors[index % cardColors.length]}]`} />
-                </div>
+              </div>
+
+              <div className="mt-4 sm:mt-0 w-full sm:w-40 flex-shrink-0">
+                  <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
+                      <span>Progreso</span>
+                      <span>{Math.round(progressByArea[area.id] || 0)}%</span>
+                  </div>
+                  <ProgressBar percentage={progressByArea[area.id] || 0} color={`bg-[${cardColors[index % cardColors.length]}]`} />
+              </div>
             </div>
+            <p className="text-sm text-slate-500 mt-3 sm:hidden">{area.description}</p>
           </div>
         ))}
       </div>
