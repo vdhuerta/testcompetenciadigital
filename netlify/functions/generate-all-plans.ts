@@ -1,12 +1,8 @@
-// FIX: Implemented the full serverless function to generate AI-based development plans.
-// This file was previously empty or contained invalid content, causing multiple errors.
-
 import type { Handler } from '@netlify/functions';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
-// Initialize the Google Gemini API client
-// The API key must be set as an environment variable `API_KEY` in your Netlify settings.
-const ai = new GoogleGenAI({ apiKey: import.meta.env.API_KEY });
+// Correctly initialize with process.env for server-side execution
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface AreaScore {
     id: number;
@@ -18,25 +14,38 @@ interface AreaScore {
     };
 }
 
-/**
- * Generates content using the Gemini API with error handling.
- * @param prompt The prompt to send to the model.
- * @returns An object with the generated content and an error if one occurred.
- */
-async function generateContent(prompt: string) {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-    // Use the .text property to get the text output
-    return { content: response.text, error: null };
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred with the AI service.";
-    return { content: '', error: `AI Generation Failed: ${errorMessage}` };
-  }
-}
+// Define the expected JSON structure from the AI for robustness
+const responseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    summary: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        level: { type: Type.STRING },
+        description: { type: Type.STRING },
+      },
+      required: ['title', 'level', 'description']
+    },
+    areaPlans: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.NUMBER },
+          nextLevelDescription: { type: Type.STRING },
+          actions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+          },
+        },
+        required: ['id', 'nextLevelDescription', 'actions']
+      },
+    },
+  },
+  required: ['summary', 'areaPlans']
+};
+
 
 const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -46,7 +55,7 @@ const handler: Handler = async (event) => {
   if (!process.env.API_KEY) {
       return {
           statusCode: 500,
-          body: JSON.stringify({ error: 'API key is not configured.' }),
+          body: JSON.stringify({ error: 'La clave API no está configurada en el servidor.' }),
       };
   }
   
@@ -55,54 +64,62 @@ const handler: Handler = async (event) => {
     const areaScores: AreaScore[] = body.areaScores;
 
     if (!areaScores || !Array.isArray(areaScores) || areaScores.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid areaScores in request body' }) };
+      return { statusCode: 400, body: JSON.stringify({ error: 'Datos de puntuación de área inválidos o faltantes.' }) };
     }
-
-    // --- Generate Summary Plan ---
-    const summaryPrompt = `
+    
+    // Construct a single, powerful prompt for a single API call
+    const fullPrompt = `
 Eres un coach experto en desarrollo profesional para docentes, especializado en competencias digitales.
-Basado en los siguientes resultados de una autoevaluación de competencias digitales, genera un resumen de un plan de desarrollo profesional.
-El resumen debe tener el siguiente formato, en 3 líneas exactas:
-1. Un título inspirador para el plan.
-2. El nivel de competencia general (ej: Novato Digital, Integrador Digital, Experto Digital), basado en el promedio de las puntuaciones.
-3. Un párrafo conciso (2-3 frases) que resuma el perfil del docente, destacando su estado actual y el objetivo del plan.
+Basado en los siguientes resultados de una autoevaluación, genera un plan de desarrollo completo en formato JSON.
 
 Resultados de la autoevaluación:
-${areaScores.map(area => `- ${area.title}: Nivel ${area.level.name} (Puntuación: ${area.score.toFixed(2)}/5).`).join('\n')}
+${areaScores.map(area => `- Área "${area.title}": Nivel ${area.level.name} (Puntuación: ${area.score.toFixed(2)}/5). Descripción: "${area.level.description}"`).join('\n')}
 
-Genera solo el texto del resumen, sin añadir introducciones, conclusiones ni formato markdown.`;
+Por favor, genera una respuesta JSON que siga estrictamente este esquema:
+{
+  "summary": {
+    "title": "Un título inspirador para el plan.",
+    "level": "El nivel de competencia general (ej: Novato Digital, Integrador Digital, Experto Digital).",
+    "description": "Un párrafo conciso (2-3 frases) que resuma el perfil del docente, su estado actual y el objetivo del plan."
+  },
+  "areaPlans": [
+    {
+      "id": 1,
+      "nextLevelDescription": "Una descripción de 1-2 frases del siguiente nivel de competencia al que aspirar para el área con id 1.",
+      "actions": [
+        "Una acción o estrategia concreta para mejorar.",
+        "Otra acción o estrategia concreta."
+      ]
+    }
+  ]
+}
+Asegúrate de que el 'id' en cada objeto de 'areaPlans' corresponda al ID numérico del área en los resultados proporcionados y que haya un objeto por cada área.
+`;
 
-    const summaryPromise = generateContent(summaryPrompt);
-
-    // --- Generate Plan for Each Area in Parallel ---
-    const areaPlanPromises = areaScores.map(area => {
-      const areaPrompt = `
-Eres un coach experto en desarrollo profesional para docentes, especializado en competencias digitales para el área de "${area.title}".
-Un docente ha obtenido el nivel "${area.level.name}" con una puntuación de ${area.score.toFixed(2)} sobre 5. Su nivel se describe como: "${area.level.description}".
-
-Genera un plan de desarrollo conciso y accionable para esta área específica. El plan debe tener el siguiente formato:
-- Una descripción de 1-2 frases del siguiente nivel de competencia al que debe aspirar.
-- Una lista de 2 o 3 acciones o estrategias concretas para mejorar, comenzando cada una con "- ".
-
-Ejemplo de formato de respuesta:
-Para progresar al siguiente nivel, deberías enfocarte en aplicar estas tecnologías de manera más colaborativa y creativa.
-- Explora herramientas de trabajo en equipo como Google Docs o Microsoft Teams para co-crear materiales con colegas.
-- Participa activamente en una comunidad de práctica en línea sobre tu área de especialización.
-
-Genera solo el texto del plan para el área, sin añadir introducciones, conclusiones ni formato markdown.`;
-      
-      return generateContent(areaPrompt).then(result => ({ id: area.id, ...result }));
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: fullPrompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: responseSchema,
+      },
     });
 
-    // Await all promises
-    const [summaryResult, areaPlanResults] = await Promise.all([
-      summaryPromise,
-      Promise.all(areaPlanPromises),
-    ]);
+    const aiResponseJson = JSON.parse(response.text);
 
-    const areaPlans = areaPlanResults.reduce((acc, result) => {
-        acc[result.id] = { content: result.content, error: result.error };
-        return acc;
+    // Transform the AI response into the format the frontend expects
+    const summaryContent = `${aiResponseJson.summary.title}\n${aiResponseJson.summary.level}\n${aiResponseJson.summary.description}`;
+    const formattedSummary = { content: summaryContent, error: null };
+
+    const formattedAreaPlans = areaScores.reduce((acc, area) => {
+      const planData = aiResponseJson.areaPlans.find((p: {id: number}) => p.id === area.id);
+      if (planData) {
+        const planContent = `${planData.nextLevelDescription}\n${planData.actions.map((action: string) => `- ${action}`).join('\n')}`;
+        acc[area.id] = { content: planContent, error: null };
+      } else {
+        acc[area.id] = { content: '', error: 'No se pudo generar un plan para esta área.' };
+      }
+      return acc;
     }, {} as Record<number, { content: string; error: string | null }>);
 
 
@@ -110,15 +127,21 @@ Genera solo el texto del plan para el área, sin añadir introducciones, conclus
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        summary: summaryResult,
-        areaPlans: areaPlans,
+        summary: formattedSummary,
+        areaPlans: formattedAreaPlans,
       }),
     };
 
   } catch (error) {
-    console.error('Error processing request:', error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    return { statusCode: 500, body: JSON.stringify({ error: `Server Error: ${errorMessage}` }) };
+    console.error('Error in serverless function:', error);
+    const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido en el servidor.";
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ 
+        summary: { content: '', error: errorMessage },
+        areaPlans: {} 
+      }) 
+    };
   }
 };
 
