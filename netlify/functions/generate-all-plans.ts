@@ -6,7 +6,7 @@ import { GoogleGenAI } from '@google/genai';
 
 // Initialize the Google Gemini API client
 // The API key must be set as an environment variable `API_KEY` in your Netlify settings.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.API_KEY });
 
 interface AreaScore {
     id: number;
