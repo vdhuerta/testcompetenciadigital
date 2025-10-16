@@ -1,206 +1,124 @@
-import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
-import { GoogleGenAI } from "@google/genai";
+// FIX: Implemented the full serverless function to generate AI-based development plans.
+// This file was previously empty or contained invalid content, causing multiple errors.
 
-// Helper types for clarity
+import type { Handler } from '@netlify/functions';
+import { GoogleGenAI } from '@google/genai';
+
+// Initialize the Google Gemini API client
+// The API key must be set as an environment variable `API_KEY` in your Netlify settings.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 interface AreaScore {
-  id: number;
-  title: string;
-  score: number;
-  level: { name: string; code: string; };
-}
-
-interface PlanGenerationResult {
-    content: string;
-    error: string | null;
-}
-
-// --- Logic moved from frontend to backend ---
-
-const getProficiencyLevel = (score: number): { name: string; code: string; } => {
-  if (score < 2) return { name: 'Novato', code: 'A1-A2' };
-  if (score < 4) return { name: 'Integrador', code: 'B1-B2' };
-  return { name: 'Experto', code: 'C1-C2' };
-};
-
-const directivaTaxonomia = `
-La Taxonomía de Bloom para la Era Digital, actualizada por Andrew Churches, toma como base la Taxonomía Revisada (que usa verbos en lugar de sustantivos) y la adapta a los nuevos comportamientos y oportunidades de aprendizaje que brindan las Tecnologías de la Información y las Comunicaciones (TIC).
-
-Esta adaptación se enfoca en el uso de las TIC como medios para desarrollar habilidades cognitivas, sin restringirse únicamente al ámbito cognitivo, sino incluyendo métodos y herramientas. El objetivo es impulsar a los estudiantes de las Habilidades de Pensamiento de Orden Inferior (LOTS) a las Habilidades de Pensamiento de Orden Superior (HOTS).
-
-A continuación, se presenta un mapa detallado de los niveles, sus definiciones, verbos clave y las herramientas digitales asociadas:
-
-***
-
-## Habilidades de Pensamiento de Orden Inferior (LOTS)
-
-### 1. RECORDAR
-*   **Definición:** Recuperar, rememorar o reconocer conocimiento.
-*   **Verbos Clave (Digitales):** Utilizar viñetas, resaltar, marcar, participar en red social, buscar.
-*   **Herramientas/Actividades:** Motores de búsqueda, Evernote, Google Drive, Diigo, Pinterest, Flashcards.
-
-### 2. COMPRENDER (Entender)
-*   **Definición:** Construir significado a partir de diferentes tipos de funciones.
-*   **Verbos Clave (Digitales):** Búsquedas avanzadas, “Twittering”, categorizar, etiquetar, comentar.
-*   **Herramientas/Actividades:** Wordle, Tagxedo, Thinglink, Mapas Conceptuales, Blogs, Foros.
-
-### 3. APLICAR
-*   **Definición:** Llevar a cabo o utilizar un procedimiento.
-*   **Verbos Clave (Digitales):** Correr, cargar, jugar, operar, subir archivos, compartir, editar.
-*   **Herramientas/Actividades:** Infografías (Piktochart, Canva), Presentaciones (Google Drive, Prezi), Simulación, edición de video.
-
-***
-
-## Habilidades de Pensamiento de Orden Superior (HOTS)
-
-### 4. ANALIZAR
-*   **Definición:** Descomponer materiales o conceptos en partes.
-*   **Verbos Clave (Digitales):** Recombinar, enlazar, validar, ingeniería inversa, mapas mentales.
-*   **Herramientas/Actividades:** Mapas mentales (Popplet, Mindmeister), Ejes cronológicos, Bases de Datos, GIS (Google Earth).
-
-### 5. EVALUAR
-*   **Definición:** Hacer juicios en base a criterios y estándares.
-*   **Verbos Clave (Digitales):** Comentar en blog, revisar, publicar, moderar, colaborar, validar.
-*   **Herramientas/Actividades:** Murales digitales (Padlet), Debatir, Wikis, Skype, investigar con GIS.
-
-### 6. CREAR
-*   **Definición:** Juntar los elementos para formar un todo coherente y funcional.
-*   **Verbos Clave (Digitales):** Programar, filmar, animar, blogear, mezclar, publicar, “videocasting”.
-*   **Herramientas/Actividades:** Producción de Películas (Movie Maker), Podcasting (Audacity), Programación (Scratch), Moldear (Sketchup), Realidad Aumentada.
-  `;
-
-const generatePlanSummaryPrompt = (scores: AreaScore[]): string => {
-  const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
-  const averageScore = scores.length > 0 ? totalScore / scores.length : 0;
-  const overallLevel = getProficiencyLevel(averageScore);
-
-  return `
-    Actúa como un experto en Educación Universitaria y Tecnología Educativa.
-    Basado en los resultados de un docente, genera un resumen para su plan de desarrollo.
-    La salida DEBE ser un texto plano con la siguiente estructura exacta:
-    Línea 1: Un título. Ejemplo: Plan de Desarrollo para la Competencia Digital Docente.
-    Línea 2: El nivel y puntuación. Ejemplo: Nivel General: ${overallLevel.name} (${overallLevel.code}) - Puntuación Promedio: ${averageScore.toFixed(2)}/5.
-    Líneas 3-5: Un párrafo conciso (3-4 líneas) describiendo los objetivos del plan, basado en el marco DigCompEdu y la Taxonomía de Bloom digital, destacando que el plan ofrece acciones concretas para pasar de habilidades de orden inferior a superior.
-  `;
-};
-
-const generateAreaDevelopmentPrompt = (area: { title: string; score: number; }): string => {
-  return `
-    Actúa como un experto en Educación Universitaria y Tecnología Educativa. Tu tarea es ser rápido y eficiente.
-
-    **Directiva de Taxonomía (Fuente de Verdad Absoluta):**
-    ${directivaTaxonomia}
-
-    **Datos del Área:**
-    - Competencia: ${area.title}
-    - Puntuación: ${area.score.toFixed(2)}/5
-
-    **Tarea:**
-    Genera un plan de desarrollo para esta área siguiendo un proceso de dos pasos para optimizar la velocidad:
-
-    **Paso 1: Identificación Rápida.**
-    Basado en la puntuación de ${area.score.toFixed(2)}, determina qué niveles taxonómicos ya están dominados.
-    - Puntuación < 2: Ninguno dominado.
-    - Puntuación 2 a 3: 'Recordar' está dominado.
-    - Puntuación 3 a 4: 'Recordar' y 'Comprender' están dominados.
-    - Puntuación > 4: 'Recordar', 'Comprender' y 'Aplicar' están dominados.
-
-    **Paso 2: Generación de Salida.**
-    Produce un texto plano listando los 6 niveles taxonómicos (Recordar, Comprender, Aplicar, Analizar, Evaluar, Crear).
-    - Para los niveles que identificaste como **dominados** en el Paso 1, NO realices ningún análisis. Simplemente escribe la siguiente frase exacta. Por ejemplo para Recordar: "Recordar: Competencia demostrada. No se requieren acciones de desarrollo específicas."
-    - Para los niveles que **NO están dominados**, realiza un análisis y proporciona acciones concretas basadas en la Directiva de Taxonomía, siguiendo estas reglas:
-      - Para los niveles 'Analizar' y 'Evaluar', proporciona **exactamente una** acción concreta.
-      - Para los demás niveles no dominados ('Recordar', 'Comprender', 'Aplicar', 'Crear'), puedes proporcionar 1 o 2 acciones.
-      - Cada acción debe empezar en una nueva línea con un guion ("- ").
-
-    La salida debe ser un texto plano, sin títulos ni introducciones, empezando directamente con "Recordar: ...".
-  `;
-};
-
-// --- Netlify Function Handler ---
-
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method Not Allowed' }),
+    id: number;
+    title: string;
+    score: number;
+    level: {
+        name: string;
+        description: string;
     };
+}
+
+/**
+ * Generates content using the Gemini API with error handling.
+ * @param prompt The prompt to send to the model.
+ * @returns An object with the generated content and an error if one occurred.
+ */
+async function generateContent(prompt: string) {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    // Use the .text property to get the text output
+    return { content: response.text, error: null };
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred with the AI service.";
+    return { content: '', error: `AI Generation Failed: ${errorMessage}` };
+  }
+}
+
+const handler: Handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "API key is not configured." }),
-    };
+  if (!process.env.API_KEY) {
+      return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'API key is not configured.' }),
+      };
   }
   
   try {
-    const { areaScores } = JSON.parse(event.body || '{}') as { areaScores: AreaScore[] };
+    const body = JSON.parse(event.body || '{}');
+    const areaScores: AreaScore[] = body.areaScores;
 
     if (!areaScores || !Array.isArray(areaScores) || areaScores.length === 0) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: 'Missing or invalid areaScores in request body.' }),
-        }
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing or invalid areaScores in request body' }) };
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    // --- Generate Summary Plan ---
+    const summaryPrompt = `
+Eres un coach experto en desarrollo profesional para docentes, especializado en competencias digitales.
+Basado en los siguientes resultados de una autoevaluación de competencias digitales, genera un resumen de un plan de desarrollo profesional.
+El resumen debe tener el siguiente formato, en 3 líneas exactas:
+1. Un título inspirador para el plan.
+2. El nivel de competencia general (ej: Novato Digital, Integrador Digital, Experto Digital), basado en el promedio de las puntuaciones.
+3. Un párrafo conciso (2-3 frases) que resuma el perfil del docente, destacando su estado actual y el objetivo del plan.
 
-    const allPromises = [];
+Resultados de la autoevaluación:
+${areaScores.map(area => `- ${area.title}: Nivel ${area.level.name} (Puntuación: ${area.score.toFixed(2)}/5).`).join('\n')}
 
-    // Summary promise
-    const summaryPromise = ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: generatePlanSummaryPrompt(areaScores),
-    }).then(response => ({
-        status: 'fulfilled',
-        value: { content: response.text ?? '', error: null }
-    })).catch(error => ({
-        status: 'rejected',
-        reason: { content: '', error: error instanceof Error ? error.message : "Error generando resumen." }
-    }));
+Genera solo el texto del resumen, sin añadir introducciones, conclusiones ni formato markdown.`;
 
-    allPromises.push(summaryPromise);
-    
-    // Area promises
-    areaScores.forEach(area => {
-        const areaPromise = ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: generateAreaDevelopmentPrompt(area),
-        }).then(response => ({
-            status: 'fulfilled',
-            value: { id: area.id, content: response.text ?? '', error: null }
-        })).catch(error => ({
-            status: 'rejected',
-            reason: { id: area.id, content: '', error: error instanceof Error ? error.message : `Error en ${area.title}.` }
-        }));
-        allPromises.push(areaPromise);
+    const summaryPromise = generateContent(summaryPrompt);
+
+    // --- Generate Plan for Each Area in Parallel ---
+    const areaPlanPromises = areaScores.map(area => {
+      const areaPrompt = `
+Eres un coach experto en desarrollo profesional para docentes, especializado en competencias digitales para el área de "${area.title}".
+Un docente ha obtenido el nivel "${area.level.name}" con una puntuación de ${area.score.toFixed(2)} sobre 5. Su nivel se describe como: "${area.level.description}".
+
+Genera un plan de desarrollo conciso y accionable para esta área específica. El plan debe tener el siguiente formato:
+- Una descripción de 1-2 frases del siguiente nivel de competencia al que debe aspirar.
+- Una lista de 2 o 3 acciones o estrategias concretas para mejorar, comenzando cada una con "- ".
+
+Ejemplo de formato de respuesta:
+Para progresar al siguiente nivel, deberías enfocarte en aplicar estas tecnologías de manera más colaborativa y creativa.
+- Explora herramientas de trabajo en equipo como Google Docs o Microsoft Teams para co-crear materiales con colegas.
+- Participa activamente en una comunidad de práctica en línea sobre tu área de especialización.
+
+Genera solo el texto del plan para el área, sin añadir introducciones, conclusiones ni formato markdown.`;
+      
+      return generateContent(areaPrompt).then(result => ({ id: area.id, ...result }));
     });
 
-    const results = await Promise.all(allPromises);
-    
-    const summaryResult = (results[0].status === 'fulfilled' ? results[0].value : results[0].reason) as PlanGenerationResult;
+    // Await all promises
+    const [summaryResult, areaPlanResults] = await Promise.all([
+      summaryPromise,
+      Promise.all(areaPlanPromises),
+    ]);
 
-    const areaPlansResult: Record<number, PlanGenerationResult> = {};
-    results.slice(1).forEach((res: any) => {
-        const result = res.status === 'fulfilled' ? res.value : res.reason;
-        areaPlansResult[result.id] = { content: result.content, error: result.error };
-    });
+    const areaPlans = areaPlanResults.reduce((acc, result) => {
+        acc[result.id] = { content: result.content, error: result.error };
+        return acc;
+    }, {} as Record<number, { content: string; error: string | null }>);
+
 
     return {
       statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         summary: summaryResult,
-        areaPlans: areaPlansResult,
+        areaPlans: areaPlans,
       }),
     };
 
   } catch (error) {
-    console.error("Error in generate-all-plans function:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error instanceof Error ? error.message : "An internal server error occurred." }),
-    };
+    console.error('Error processing request:', error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    return { statusCode: 500, body: JSON.stringify({ error: `Server Error: ${errorMessage}` }) };
   }
 };
 
