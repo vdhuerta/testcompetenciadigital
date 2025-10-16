@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Area } from '../types';
+import type { Area, GenerateSummaryPayload, GeneratePlanPayload } from '../types';
 import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
 
@@ -144,47 +144,72 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
     setAreaPlans(initialAreaPlans);
 
     try {
-        const response = await fetch('/api/generate-all-plans', {
+        const allPromises: Promise<any>[] = [];
+
+        // Summary promise
+        const summaryPayload: GenerateSummaryPayload = {
+          scores: areaScores.map(s => ({ title: s.title, score: s.score, level: { name: s.level.name, code: s.level.code } }))
+        };
+
+        const summaryPromise = fetch('/.netlify/functions/generate-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ areaScores }),
+            body: JSON.stringify(summaryPayload),
+        })
+        .then(async (res) => {
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ error: 'Error desconocido al generar resumen.' }));
+                throw new Error(errorData.error || `Error del servidor: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            setPlanSummary({ content: data.plan ?? '', isLoading: false, error: null });
+        }).catch(error => {
+            const errorMessage = error instanceof Error ? error.message : "Error generando resumen.";
+            setPlanSummary({ content: '', isLoading: false, error: errorMessage });
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Error desconocido del servidor.' }));
-            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        setPlanSummary({
-            content: data.summary.content,
-            isLoading: false,
-            error: data.summary.error,
-        });
-
-        const finalAreaPlans: Record<number, PlanState> = {};
-        areas.forEach(area => {
-            const plan = data.areaPlans[area.id];
-            finalAreaPlans[area.id] = {
-                content: plan?.content || '',
-                isLoading: false,
-                error: plan?.error || null,
+        allPromises.push(summaryPromise);
+        
+        // Area promises
+        areaScores.forEach(area => {
+            const areaPayload: GeneratePlanPayload = {
+              area: { title: area.title, score: area.score }
             };
+
+            const areaPromise = fetch('/.netlify/functions/generate-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(areaPayload),
+            })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: `Error en ${area.title}`}));
+                    throw new Error(errorData.error || `Error del servidor: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                setAreaPlans(prev => ({
+                    ...prev,
+                    [area.id]: { content: data.plan ?? '', isLoading: false, error: null }
+                }));
+            }).catch(error => {
+                const errorMessage = error instanceof Error ? error.message : `Error en ${area.title}.`;
+                 setAreaPlans(prev => ({
+                    ...prev,
+                    [area.id]: { content: '', isLoading: false, error: errorMessage }
+                }));
+            });
+            allPromises.push(areaPromise);
         });
-        setAreaPlans(finalAreaPlans);
+
+        await Promise.allSettled(allPromises);
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Ocurrió un error al generar el plan.";
-        console.error("Error generating AI plan:", error);
-        
-        setPlanSummary({ content: '', isLoading: false, error: errorMessage });
-
-        const errorAreaPlans: Record<number, PlanState> = {};
-        areas.forEach(area => {
-            errorAreaPlans[area.id] = { content: '', isLoading: false, error: "No se pudo generar el plan para esta área." };
-        });
-        setAreaPlans(errorAreaPlans);
+        console.error("Error en la generación de planes:", error);
+        const errorMessage = error instanceof Error ? error.message : "Un error desconocido ocurrió.";
+        setPlanSummary({ content: '', isLoading: false, error: `Error general: ${errorMessage}` });
     } finally {
         setIsGeneratingPlans(false);
     }
@@ -429,7 +454,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
                     <button
                         onClick={handleDownloadPlan}
                         disabled={!allPlansGenerated || isGeneratingPlans}
-                        className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-brand-secondary border border-transparent rounded-lg shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
+                        className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-brand-primary border border-transparent rounded-lg shadow-sm hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
                     >
                         <DownloadIcon className="h-5 w-5"/>
                         <span>Descargar Plan</span>

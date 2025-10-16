@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export interface Question {
@@ -42,4 +41,25 @@ export interface Notification {
     text: string;
     time: string;
     icon: React.ComponentType<{ className?: string }>;
+}
+
+// Types for Netlify functions payload
+export interface AreaScore {
+  title: string;
+  score: number;
+  level: {
+    name: string;
+    code: string;
+  };
+}
+
+export interface GenerateSummaryPayload {
+  scores: AreaScore[];
+}
+
+export interface GeneratePlanPayload {
+  area: {
+    title: string;
+    score: number;
+  };
 }
