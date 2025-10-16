@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ProgressBar } from './ProgressBar';
 import type { Area } from '../types';
@@ -5,6 +6,8 @@ import type { Area } from '../types';
 interface AreaCardProps {
   area: Area;
   progress: number;
+  answeredCount: number;
+  totalCount: number;
   onSelect: () => void;
   colorIndex: number;
 }
@@ -15,7 +18,7 @@ const cardColors = [
 
 const progressColors = cardColors;
 
-export const AreaCard: React.FC<AreaCardProps> = ({ area, progress, onSelect, colorIndex }) => {
+export const AreaCard: React.FC<AreaCardProps> = ({ area, progress, onSelect, colorIndex, answeredCount, totalCount }) => {
   const bgColor = cardColors[colorIndex % cardColors.length];
   const progressColor = progressColors[colorIndex % progressColors.length];
 
@@ -36,7 +39,7 @@ export const AreaCard: React.FC<AreaCardProps> = ({ area, progress, onSelect, co
       <div className="p-6 flex-grow flex flex-col justify-end">
         <div className="flex justify-between items-center text-sm text-slate-500 mb-2">
             <span>Progreso</span>
-            <span>{Math.round(progress)}%</span>
+            <span>{answeredCount}/{totalCount}</span>
         </div>
         <ProgressBar percentage={progress} color={progressColor} />
       </div>

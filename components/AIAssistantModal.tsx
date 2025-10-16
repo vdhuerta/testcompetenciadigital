@@ -23,6 +23,14 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ recommendati
     if (error) {
       return <div className="p-8 text-center text-red-600 bg-red-50 rounded-lg">{error}</div>;
     }
+
+    if (!recommendations) {
+        return (
+            <div className="text-center p-8 text-slate-500">
+                La IA no generó un plan esta vez. Por favor, intenta de nuevo.
+            </div>
+        );
+    }
     
     // This robustly formats the AI-generated markdown into clean HTML for live preview.
     const formattedRecommendations = recommendations
@@ -30,7 +38,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ recommendati
       .replace(/^## (.*)$/gm, '<h2 class="text-xl font-bold text-slate-800 mt-6 mb-3">$1</h2>')
       .replace(/\*\*([^\*]+)\*\*/g, '<strong class="font-semibold text-slate-700">$1</strong>')
       .replace(/^\s*\*\s(.*)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>(?:\s*<li>.*<\/li>)*)/g, '<ul>$1</ul>')
+      .replace(/(<li>.*<\/li>(?:\s*<li>.*<\/li>)*)/g, '<ul class="list-disc pl-5 space-y-2 mt-2">$1</ul>')
       .replace(/\n/g, '<br />')
       .replace(/<br \/>\s*<ul>/g, '<ul>')
       .replace(/<\/ul>\s*<br \/>/g, '</ul>');
@@ -69,6 +77,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ recommendati
           to { opacity: 1; transform: scale(1); }
         }
         .animate-fade-in-scale { animation: fade-in-scale 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+        .prose ul { list-style-type: disc; }
+        .prose li { margin-left: 1.25rem; }
       `}</style>
     </div>
   );

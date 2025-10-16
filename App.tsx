@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
@@ -51,11 +52,12 @@ export default function App(): React.ReactElement {
     localStorage.setItem('hasShownCompletionModal', String(hasShownCompletionModal));
   }, [hasShownCompletionModal]);
   
+  const totalQuestions = useMemo(() => AREAS.reduce((sum, area) => sum + area.questions.length, 0), []);
+  const answeredCount = Object.keys(answers).length;
+
   const overallProgress = useMemo(() => {
-    const totalQuestions = AREAS.reduce((sum, area) => sum + area.questions.length, 0);
-    const answeredCount = Object.keys(answers).length;
     return totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
-  }, [answers]);
+  }, [answeredCount, totalQuestions]);
 
   const handleOnboardingComplete = (data: UserData) => {
     setUserData(data);
@@ -136,9 +138,7 @@ export default function App(): React.ReactElement {
         });
     }
 
-    const totalQuestions = AREAS.reduce((sum, area) => sum + area.questions.length, 0);
-    const questionsAnswered = Object.keys(answers).length;
-    const questionsLeft = totalQuestions - questionsAnswered;
+    const questionsLeft = totalQuestions - answeredCount;
 
     if (questionsLeft > 0) {
         alerts.push({
@@ -149,12 +149,12 @@ export default function App(): React.ReactElement {
         });
     }
 
+    // FIX: Add explicit typing to resolve potential type inference issues under strict checking.
     const areasInProgress = Object.entries(progressByArea)
-      .map(([id, progress]) => ({ id: Number(id), progress }))
-      // FIX: Cast `p.progress` to number. Under strict type checking, its type was inferred as `unknown`, causing comparison errors.
-      .filter(p => (p.progress as number) > 0 && (p.progress as number) < 100)
-      // FIX: Cast `progress` properties to number. Under strict type checking, their types were inferred as `unknown`, causing arithmetic errors.
-      .sort((a, b) => (a.progress as number) - (b.progress as number));
+      // FIX: Cast progress to number to handle cases where Object.entries infers it as unknown.
+      .map(([id, progress]): {id: number, progress: number} => ({ id: Number(id), progress: progress as number }))
+      .filter(p => p.progress > 0 && p.progress < 100)
+      .sort((a, b) => a.progress - b.progress);
 
     if (areasInProgress.length > 0) {
         const leastProgressAreaId = areasInProgress[0].id;
@@ -171,7 +171,7 @@ export default function App(): React.ReactElement {
 
 
     return alerts.slice(0, 4);
-  }, [overallProgress, answers, progressByArea]);
+  }, [overallProgress, progressByArea, answeredCount, totalQuestions]);
 
   const filteredAreas = useMemo(() => {
     if (!searchQuery) return AREAS;
@@ -260,15 +260,21 @@ export default function App(): React.ReactElement {
 
                 {filteredAreas.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-8">
-                      {filteredAreas.map((area, index) => (
-                        <AreaCard
-                          key={area.id}
-                          area={area}
-                          progress={progressByArea[area.id] || 0}
-                          onSelect={() => handleSelectArea(area)}
-                          colorIndex={index}
-                        />
-                      ))}
+                      {filteredAreas.map((area, index) => {
+                        const answeredCountForArea = area.questions.filter(q => answers[q.id] !== undefined).length;
+                        const totalCountForArea = area.questions.length;
+                        return (
+                          <AreaCard
+                            key={area.id}
+                            area={area}
+                            progress={progressByArea[area.id] || 0}
+                            answeredCount={answeredCountForArea}
+                            totalCount={totalCountForArea}
+                            onSelect={() => handleSelectArea(area)}
+                            colorIndex={index}
+                          />
+                        );
+                      })}
                     </div>
                 ) : (
                   <div className="text-center py-16">
