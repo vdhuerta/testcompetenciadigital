@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import type { Area } from '../types';
 import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
-import { GoogleGenAI } from '@google/genai';
 
 
 interface ResultsProps {
@@ -19,101 +18,6 @@ const getProficiencyLevel = (score: number): { name: string; code: string; descr
 const cardColors = [
     'bg-sky-500', 'bg-teal-500', 'bg-violet-500', 'bg-rose-500', 'bg-amber-500', 'bg-lime-500', 'bg-indigo-500'
 ];
-
-const directivaTaxonomia = `
-La Taxonomía de Bloom para la Era Digital, actualizada por Andrew Churches, toma como base la Taxonomía Revisada (que usa verbos en lugar de sustantivos) y la adapta a los nuevos comportamientos y oportunidades de aprendizaje que brindan las Tecnologías de la Información y las Comunicaciones (TIC).
-
-Esta adaptación se enfoca en el uso de las TIC como medios para desarrollar habilidades cognitivas, sin restringirse únicamente al ámbito cognitivo, sino incluyendo métodos y herramientas. El objetivo es impulsar a los estudiantes de las Habilidades de Pensamiento de Orden Inferior (LOTS) a las Habilidades de Pensamiento de Orden Superior (HOTS).
-
-A continuación, se presenta un mapa detallado de los niveles, sus definiciones, verbos clave y las herramientas digitales asociadas:
-
-***
-
-## Habilidades de Pensamiento de Orden Inferior (LOTS)
-
-### 1. RECORDAR
-*   **Definición:** Recuperar, rememorar o reconocer conocimiento.
-*   **Verbos Clave (Digitales):** Utilizar viñetas, resaltar, marcar, participar en red social, buscar.
-*   **Herramientas/Actividades:** Motores de búsqueda, Evernote, Google Drive, Diigo, Pinterest, Flashcards.
-
-### 2. COMPRENDER (Entender)
-*   **Definición:** Construir significado a partir de diferentes tipos de funciones.
-*   **Verbos Clave (Digitales):** Búsquedas avanzadas, “Twittering”, categorizar, etiquetar, comentar.
-*   **Herramientas/Actividades:** Wordle, Tagxedo, Thinglink, Mapas Conceptuales, Blogs, Foros.
-
-### 3. APLICAR
-*   **Definición:** Llevar a cabo o utilizar un procedimiento.
-*   **Verbos Clave (Digitales):** Correr, cargar, jugar, operar, subir archivos, compartir, editar.
-*   **Herramientas/Actividades:** Infografías (Piktochart, Canva), Presentaciones (Google Drive, Prezi), Simulación, edición de video.
-
-***
-
-## Habilidades de Pensamiento de Orden Superior (HOTS)
-
-### 4. ANALIZAR
-*   **Definición:** Descomponer materiales o conceptos en partes.
-*   **Verbos Clave (Digitales):** Recombinar, enlazar, validar, ingeniería inversa, mapas mentales.
-*   **Herramientas/Actividades:** Mapas mentales (Popplet, Mindmeister), Ejes cronológicos, Bases de Datos, GIS (Google Earth).
-
-### 5. EVALUAR
-*   **Definición:** Hacer juicios en base a criterios y estándares.
-*   **Verbos Clave (Digitales):** Comentar en blog, revisar, publicar, moderar, colaborar, validar.
-*   **Herramientas/Actividades:** Murales digitales (Padlet), Debatir, Wikis, Skype, investigar con GIS.
-
-### 6. CREAR
-*   **Definición:** Juntar los elementos para formar un todo coherente y funcional.
-*   **Verbos Clave (Digitales):** Programar, filmar, animar, blogear, mezclar, publicar, “videocasting”.
-*   **Herramientas/Actividades:** Producción de Películas (Movie Maker), Podcasting (Audacity), Programación (Scratch), Moldear (Sketchup), Realidad Aumentada.
-  `;
-
-const generatePlanSummaryPrompt = (scores: { title: string; score: number; level: { name: string; code: string; } }[]): string => {
-  const totalScore = scores.reduce((sum, s) => sum + s.score, 0);
-  const averageScore = scores.length > 0 ? totalScore / scores.length : 0;
-  const overallLevel = getProficiencyLevel(averageScore);
-
-  return `
-    Actúa como un experto en Educación Universitaria y Tecnología Educativa.
-    Basado en los resultados de un docente, genera un resumen para su plan de desarrollo.
-    La salida DEBE ser un texto plano con la siguiente estructura exacta:
-    Línea 1: Un título. Ejemplo: Plan de Desarrollo para la Competencia Digital Docente.
-    Línea 2: El nivel y puntuación. Ejemplo: Nivel General: ${overallLevel.name} (${overallLevel.code}) - Puntuación Promedio: ${averageScore.toFixed(2)}/5.
-    Líneas 3-5: Un párrafo conciso (3-4 líneas) describiendo los objetivos del plan, basado en el marco DigCompEdu y la Taxonomía de Bloom digital, destacando que el plan ofrece acciones concretas para pasar de habilidades de orden inferior a superior.
-  `;
-};
-
-const generateAreaDevelopmentPrompt = (area: { title: string; score: number; }): string => {
-  return `
-    Actúa como un experto en Educación Universitaria y Tecnología Educativa. Tu tarea es ser rápido y eficiente.
-
-    **Directiva de Taxonomía (Fuente de Verdad Absoluta):**
-    ${directivaTaxonomia}
-
-    **Datos del Área:**
-    - Competencia: ${area.title}
-    - Puntuación: ${area.score.toFixed(2)}/5
-
-    **Tarea:**
-    Genera un plan de desarrollo para esta área siguiendo un proceso de dos pasos para optimizar la velocidad:
-
-    **Paso 1: Identificación Rápida.**
-    Basado en la puntuación de ${area.score.toFixed(2)}, determina qué niveles taxonómicos ya están dominados.
-    - Puntuación < 2: Ninguno dominado.
-    - Puntuación 2 a 3: 'Recordar' está dominado.
-    - Puntuación 3 a 4: 'Recordar' y 'Comprender' están dominados.
-    - Puntuación > 4: 'Recordar', 'Comprender' y 'Aplicar' están dominados.
-
-    **Paso 2: Generación de Salida.**
-    Produce un texto plano listando los 6 niveles taxonómicos (Recordar, Comprender, Aplicar, Analizar, Evaluar, Crear).
-    - Para los niveles que identificaste como **dominados** en el Paso 1, NO realices ningún análisis. Simplemente escribe la siguiente frase exacta. Por ejemplo para Recordar: "Recordar: Competencia demostrada. No se requieren acciones de desarrollo específicas."
-    - Para los niveles que **NO están dominados**, realiza un análisis y proporciona acciones concretas basadas en la Directiva de Taxonomía, siguiendo estas reglas:
-      - Para los niveles 'Analizar' y 'Evaluar', proporciona **exactamente una** acción concreta.
-      - Para los demás niveles no dominados ('Recordar', 'Comprender', 'Aplicar', 'Crear'), puedes proporcionar 1 o 2 acciones.
-      - Cada acción debe empezar en una nueva línea con un guion ("- ").
-
-    La salida debe ser un texto plano, sin títulos ni introducciones, empezando directamente con "Recordar: ...".
-  `;
-};
-
 
 const FormattedPlanContent: React.FC<{ content: string }> = ({ content }) => {
     const lines = content.split('\n').filter(line => line.trim() !== '');
@@ -240,52 +144,47 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas }) => {
     setAreaPlans(initialAreaPlans);
 
     try {
-        const apiKey = process.env.API_KEY;
-        if (!apiKey) {
-            throw new Error("API key is not configured. Please set it up in the environment secrets.");
+        const response = await fetch('/api/generate-all-plans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ areaScores }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Error desconocido del servidor.' }));
+            throw new Error(errorData.error || `Error del servidor: ${response.status}`);
         }
-        const ai = new GoogleGenAI({ apiKey });
 
-        const allPromises: Promise<any>[] = [];
+        const data = await response.json();
 
-        // Summary promise
-        const summaryPromise = ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: generatePlanSummaryPrompt(areaScores),
-        }).then(response => {
-            setPlanSummary({ content: response.text ?? '', isLoading: false, error: null });
-        }).catch(error => {
-            const errorMessage = error instanceof Error ? error.message : "Error generando resumen.";
-            setPlanSummary({ content: '', isLoading: false, error: errorMessage });
-        });
-        allPromises.push(summaryPromise);
-        
-        // Area promises
-        areaScores.forEach(area => {
-            const areaPromise = ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: generateAreaDevelopmentPrompt(area),
-            }).then(response => {
-                setAreaPlans(prev => ({
-                    ...prev,
-                    [area.id]: { content: response.text ?? '', isLoading: false, error: null }
-                }));
-            }).catch(error => {
-                const errorMessage = error instanceof Error ? error.message : `Error en ${area.title}.`;
-                 setAreaPlans(prev => ({
-                    ...prev,
-                    [area.id]: { content: '', isLoading: false, error: errorMessage }
-                }));
-            });
-            allPromises.push(areaPromise);
+        setPlanSummary({
+            content: data.summary.content,
+            isLoading: false,
+            error: data.summary.error,
         });
 
-        await Promise.allSettled(allPromises);
+        const finalAreaPlans: Record<number, PlanState> = {};
+        areas.forEach(area => {
+            const plan = data.areaPlans[area.id];
+            finalAreaPlans[area.id] = {
+                content: plan?.content || '',
+                isLoading: false,
+                error: plan?.error || null,
+            };
+        });
+        setAreaPlans(finalAreaPlans);
 
     } catch (error) {
-        console.error("Error setting up AI plan generation:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        const errorMessage = error instanceof Error ? error.message : "Ocurrió un error al generar el plan.";
+        console.error("Error generating AI plan:", error);
+        
         setPlanSummary({ content: '', isLoading: false, error: errorMessage });
+
+        const errorAreaPlans: Record<number, PlanState> = {};
+        areas.forEach(area => {
+            errorAreaPlans[area.id] = { content: '', isLoading: false, error: "No se pudo generar el plan para esta área." };
+        });
+        setAreaPlans(errorAreaPlans);
     } finally {
         setIsGeneratingPlans(false);
     }
