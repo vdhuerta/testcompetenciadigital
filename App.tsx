@@ -14,9 +14,10 @@ import { CompletionModal } from './components/CompletionModal';
 import { ResetConfirmationModal } from './components/ResetConfirmationModal';
 import { MobileMenu } from './components/MobileMenu';
 import { BadgeUnlockedModal } from './components/BadgeUnlockedModal';
+import { NotificationHistoryModal } from './components/NotificationHistoryModal';
 import { AREAS, ALL_BADGES } from './constants';
 import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task, Streak, Badge } from './types';
-import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon } from './components/icons/Icons';
+import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon, TrophyIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
   const [userData, setUserData] = useState<UserData | null>(() => {
@@ -40,6 +41,7 @@ export default function App(): React.ReactElement {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<Badge | null>(null);
+  const [isNotificationHistoryOpen, setIsNotificationHistoryOpen] = useState(false);
 
 
   // State for persisting the generated AI plan
@@ -67,6 +69,11 @@ export default function App(): React.ReactElement {
   const [earnedBadges, setEarnedBadges] = useState<string[]>(() => {
     const saved = localStorage.getItem('earnedBadges');
     return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [allNotifications, setAllNotifications] = useState<Notification[]>(() => {
+      const saved = localStorage.getItem('allNotifications');
+      return saved ? JSON.parse(saved) : [];
   });
 
 
@@ -105,6 +112,10 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     localStorage.setItem('earnedBadges', JSON.stringify(earnedBadges));
   }, [earnedBadges]);
+  
+  useEffect(() => {
+    localStorage.setItem('allNotifications', JSON.stringify(allNotifications));
+  }, [allNotifications]);
   
   const totalQuestions = useMemo(() => AREAS.reduce((sum, area) => sum + area.questions.length, 0), []);
   const answeredCount = Object.keys(answers).length;
@@ -145,7 +156,21 @@ export default function App(): React.ReactElement {
             }
         }
     }, []); // Runs only once on app load
-
+    
+    const addNotification = useCallback((notification: Omit<Notification, 'timestamp' | 'isNew'>) => {
+        setAllNotifications(prev => {
+            // Prevent duplicate notifications for the same event
+            if (prev.some(n => n.id === notification.id && n.text === notification.text)) {
+                return prev;
+            }
+            const newNotification: Notification = {
+                ...notification,
+                timestamp: new Date().toISOString(),
+                isNew: true,
+            };
+            return [newNotification, ...prev];
+        });
+    }, []);
 
     const handleUnlockBadge = useCallback((badgeId: string) => {
         if (!earnedBadges.includes(badgeId)) {
@@ -153,9 +178,14 @@ export default function App(): React.ReactElement {
             if (badge) {
                 setEarnedBadges(prev => [...prev, badgeId]);
                 setNewlyUnlockedBadge(badge);
+                addNotification({
+                    id: `badge-${badge.id}`,
+                    text: `¡Logro desbloqueado: ${badge.title}!`,
+                    icon: TrophyIcon,
+                });
             }
         }
-    }, [earnedBadges]);
+    }, [earnedBadges, addNotification]);
 
     // Badge Unlocking Logic
     useEffect(() => {
@@ -178,8 +208,8 @@ export default function App(): React.ReactElement {
                 .map(([, optionIndex]) => optionIndex as number);
 
             if (areaAnswers.length === area.questions.length) {
-                const score = areaAnswers.reduce((sum: number, val: number) => sum + val, 0) / areaAnswers.length;
-                // FIX: Explicitly typed accumulator and value in reduce to prevent 'score' from being inferred as 'unknown'.
+                // FIX: Explicitly convert `val` to a number to prevent type issues where `val` might be inferred as `unknown`.
+                const score = areaAnswers.reduce((sum: number, val) => sum + Number(val), 0) / areaAnswers.length;
                 if (score >= 4) { // 'Expert' level
                     handleUnlockBadge(`expert_${area.id}`);
                 }
@@ -187,6 +217,83 @@ export default function App(): React.ReactElement {
         });
 
     }, [userData, progressByArea, planSummary, tasks, streak, answers, handleUnlockBadge]);
+    
+    // General Notification Logic
+    useEffect(() => {
+        const addOrUpdateNotification = (notification: Omit<Notification, 'timestamp' | 'isNew'>) => {
+            setAllNotifications(prev => {
+                const existingIndex = prev.findIndex(n => n.id === notification.id);
+                const newNotification = { ...notification, timestamp: new Date().toISOString(), isNew: true };
+                if (existingIndex !== -1) {
+                    if (prev[existingIndex].text === newNotification.text) return prev; // No change
+                    const updatedNotifications = [...prev];
+                    updatedNotifications[existingIndex] = newNotification;
+                    return updatedNotifications;
+                }
+                return [newNotification, ...prev];
+            });
+        };
+
+        // Welcome notification on first load
+        if (allNotifications.length === 0 && userData) {
+             addOrUpdateNotification({
+                id: 'welcome',
+                text: '¡Te damos la bienvenida a la autoevaluación!',
+                icon: SparklesIcon,
+            });
+        }
+        
+        if (streak.count > 1) {
+            addOrUpdateNotification({
+                id: 'streak',
+                text: `¡Llevas una racha de ${streak.count} días! ¡Sigue así!`,
+                icon: FireIcon,
+            });
+        }
+
+        const progressInt = Math.round(overallProgress);
+        if (progressInt > 0 && progressInt < 100) {
+            addOrUpdateNotification({
+                id: 'progress',
+                text: `Llevas un ${progressInt}% completado. ¡Sigue así!`,
+                icon: ChartBarIcon,
+            });
+        }
+
+        if (tasks.length > 0) {
+            addOrUpdateNotification({
+                id: 'task-progress',
+                text: `Llevas un ${Math.round(taskProgress)}% de tu plan de tareas completado.`,
+                icon: CheckBadgeIcon,
+            });
+        }
+
+        const questionsLeft = totalQuestions - answeredCount;
+        if (questionsLeft > 0) {
+            addOrUpdateNotification({
+                id: 'remaining',
+                text: `Te quedan ${questionsLeft} preguntas para finalizar.`,
+                icon: LightBulbIcon,
+            });
+        }
+
+        const areasInProgress = Object.entries(progressByArea)
+          .map(([id, progress]) => ({ id: Number(id), progress: progress as number }))
+          .filter(p => p.progress > 0 && p.progress < 100)
+          .sort((a, b) => a.progress - b.progress);
+
+        if (areasInProgress.length > 0) {
+            const leastProgressAreaId = areasInProgress[0].id;
+            const areaInfo = AREAS.find(a => a.id === leastProgressAreaId);
+            if (areaInfo) {
+                addOrUpdateNotification({
+                    id: 'next-step',
+                    text: `Tu área con menor progreso es ${areaInfo.title}. ¿Continuamos por ahí?`,
+                    icon: BellIcon,
+                });
+            }
+        }
+    }, [userData, overallProgress, taskProgress, streak.count, answeredCount, progressByArea]);
 
 
   const handleOnboardingComplete = (data: UserData) => {
@@ -236,6 +343,7 @@ export default function App(): React.ReactElement {
     localStorage.removeItem('tasks');
     localStorage.removeItem('streak');
     localStorage.removeItem('earnedBadges');
+    localStorage.removeItem('allNotifications');
     
     setUserData(null);
     setAnswers({});
@@ -245,82 +353,17 @@ export default function App(): React.ReactElement {
     setTasks([]);
     setStreak({ count: 0, lastVisit: '' });
     setEarnedBadges([]);
+    setAllNotifications([]);
     setCurrentView('dashboard');
 
     setIsResetModalOpen(false);
   };
 
-  const notifications = useMemo((): Notification[] => {
-    const alerts: Notification[] = [];
-    alerts.push({
-        id: 'welcome',
-        text: '¡Te damos la bienvenida a la autoevaluación!',
-        time: 'justo ahora',
-        icon: SparklesIcon,
-    });
-    
-    if (streak.count > 1) {
-        alerts.push({
-            id: 'streak',
-            text: `¡Llevas una racha de ${streak.count} días! ¡Sigue así!`,
-            time: 'motivación',
-            icon: FireIcon,
-        });
-    }
-
-    const progressInt = Math.round(overallProgress);
-    if (progressInt > 0 && progressInt < 100) {
-        alerts.push({
-            id: 'progress',
-            text: `Llevas un ${progressInt}% completado. ¡Sigue así!`,
-            time: 'hace un momento',
-            icon: ChartBarIcon,
-        });
-    }
-    
-    if (tasks.length > 0) {
-        alerts.push({
-            id: 'task-progress',
-            text: `Llevas un ${Math.round(taskProgress)}% de tu plan de tareas completado.`,
-            time: 'plan de acción',
-            icon: CheckBadgeIcon,
-        });
-    }
-
-    const questionsLeft = totalQuestions - answeredCount;
-
-    if (questionsLeft > 0) {
-        alerts.push({
-            id: 'remaining',
-            text: `Te quedan ${questionsLeft} preguntas para finalizar.`,
-            time: 'info',
-            icon: LightBulbIcon,
-        });
-    }
-
-    // FIX: Add explicit typing to resolve potential type inference issues under strict checking.
-    const areasInProgress = Object.entries(progressByArea)
-      // FIX: Cast progress to number to handle cases where Object.entries infers it as unknown.
-      .map(([id, progress]): {id: number, progress: number} => ({ id: Number(id), progress: progress as number }))
-      .filter(p => p.progress > 0 && p.progress < 100)
-      .sort((a, b) => a.progress - b.progress);
-
-    if (areasInProgress.length > 0) {
-        const leastProgressAreaId = areasInProgress[0].id;
-        const areaInfo = AREAS.find(a => a.id === leastProgressAreaId);
-        if (areaInfo) {
-            alerts.push({
-                id: 'next-step',
-                text: `Tu área con menor progreso es ${areaInfo.title}. ¿Continuamos por ahí?`,
-                time: 'sugerencia',
-                icon: BellIcon,
-            });
-        }
-    }
-
-
-    return alerts.slice(0, 4);
-  }, [overallProgress, progressByArea, answeredCount, totalQuestions, tasks, taskProgress, streak]);
+  const displayedNotifications = useMemo((): Notification[] => {
+    return [...allNotifications]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 4);
+  }, [allNotifications]);
 
   const filteredAreas = useMemo(() => {
     if (!searchQuery) return AREAS;
@@ -397,8 +440,9 @@ export default function App(): React.ReactElement {
             onSearchChange={handleSearchChange}
             searchResults={searchResults}
             onSearchResultClick={handleSearchResultClick}
-            notifications={notifications}
+            notifications={displayedNotifications}
             onMenuClick={() => setIsMobileMenuOpen(true)}
+            onShowAllNotifications={() => setIsNotificationHistoryOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8 lg:p-12">
           <div className="max-w-7xl mx-auto">
@@ -509,6 +553,13 @@ export default function App(): React.ReactElement {
             badge={newlyUnlockedBadge}
             onClose={() => setNewlyUnlockedBadge(null)}
         />
+      )}
+      {isNotificationHistoryOpen && (
+          <NotificationHistoryModal
+            isOpen={isNotificationHistoryOpen}
+            onClose={() => setIsNotificationHistoryOpen(false)}
+            notifications={allNotifications}
+          />
       )}
     </div>
   );

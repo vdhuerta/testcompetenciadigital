@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { SearchIcon, BellIcon, MenuIcon } from './icons/Icons';
 import type { SearchResult, Notification } from '../types';
+import { formatTimestamp } from '../utils/formatTimestamp';
 
 interface HeaderProps {
   searchQuery: string;
@@ -10,6 +10,7 @@ interface HeaderProps {
   onSearchResultClick: (result: SearchResult) => void;
   notifications: Notification[];
   onMenuClick: () => void;
+  onShowAllNotifications: () => void;
 }
 
 const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) => {
@@ -28,7 +29,7 @@ const Highlight: React.FC<{ text: string; query: string }> = ({ text, query }) =
   );
 };
 
-export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, searchResults, onSearchResultClick, notifications, onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, searchResults, onSearchResultClick, notifications, onMenuClick, onShowAllNotifications }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -53,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, sea
   const truncate = (str: string, length: number) => {
     return str.length > length ? str.substring(0, length) + '...' : str;
   }
+
+  const hasNewNotifications = notifications.some(n => n.isNew);
 
   return (
     <header className="flex-shrink-0 bg-white shadow-sm z-10">
@@ -110,28 +113,37 @@ export const Header: React.FC<HeaderProps> = ({ searchQuery, onSearchChange, sea
                 className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full"
             >
                 <BellIcon className="h-6 w-6" />
-                <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                {hasNewNotifications && <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>}
             </button>
             {notificationsOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200">
                     <div className="py-2 px-4 border-b border-slate-200">
                         <h3 className="font-semibold text-slate-700">Notificaciones</h3>
                     </div>
-                    <ul>
-                        {notifications.map(notif => (
-                            <li key={notif.id} className="border-b border-slate-100 last:border-b-0">
-                                <div className="flex items-start gap-4 p-4 hover:bg-slate-50">
-                                    <div className="mt-1">
-                                      <notif.icon className="h-5 w-5 text-slate-400" />
+                    {notifications.length > 0 ? (
+                        <ul>
+                            {notifications.map(notif => (
+                                <li key={notif.id} className="border-b border-slate-100 last:border-b-0">
+                                    <div className="flex items-start gap-4 p-4 hover:bg-slate-50">
+                                        <div className="mt-1">
+                                          <notif.icon className="h-5 w-5 text-slate-400" />
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-slate-600">{notif.text}</p>
+                                          <p className="text-xs text-slate-400 mt-1">{formatTimestamp(notif.timestamp)}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                      <p className="text-sm text-slate-600">{notif.text}</p>
-                                      <p className="text-xs text-slate-400 mt-1">{notif.time}</p>
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-slate-500 p-4 text-center">No tienes notificaciones.</p>
+                    )}
+                     <div className="bg-slate-50 p-2 text-center border-t border-slate-200">
+                        <button onClick={onShowAllNotifications} className="text-sm font-semibold text-sky-600 hover:text-sky-800">
+                            Ver todas
+                        </button>
+                    </div>
                 </div>
             )}
            </div>

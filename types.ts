@@ -1,4 +1,5 @@
 import React from 'react';
+import { TrophyIcon } from './components/icons/Icons';
 
 export interface Question {
   id: number;
@@ -39,8 +40,9 @@ export interface SearchResult {
 export interface Notification {
     id: string;
     text: string;
-    time: string;
+    timestamp: string; // ISO Date string
     icon: React.ComponentType<{ className?: string }>;
+    isNew?: boolean;
 }
 
 // Types for Netlify functions payload
