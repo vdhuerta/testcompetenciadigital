@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState } from '../types';
 import { RadarChart } from './RadarChart';
@@ -401,16 +402,16 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
         <h1 className="text-3xl md:text-4xl font-bold text-slate-800">Resultados de la Autoevaluación</h1>
         <p className="mt-2 text-slate-500">Este es un resumen de tus competencias digitales, basado en tus respuestas.</p>
       </div>
-      
-      {allQuestionsAnswered && (
-        <div className="mt-6 bg-sky-50 border border-sky-200 p-4 rounded-xl text-center shadow-sm">
-            <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General</p>
-            <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name} <span className="text-lg font-medium text-slate-500">({overallLevel.code})</span></h2>
-            <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">{overallLevel.description}</p>
-        </div>
-      )}
 
       <div className="mt-8 max-w-4xl mx-auto space-y-8">
+        {allQuestionsAnswered && (
+            <div className="bg-sky-50 border border-sky-200 p-4 rounded-xl text-center shadow-sm">
+                <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General</p>
+                <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name} <span className="text-lg font-medium text-slate-500">({overallLevel.code})</span></h2>
+                <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">{overallLevel.description}</p>
+            </div>
+        )}
+
         <div className="bg-white p-6 rounded-xl shadow-md">
             <h2 className="text-xl font-bold text-slate-700 text-center">Resumen de Competencias</h2>
             <p className="text-sm text-slate-500 mt-1 text-center">Visualización de tu perfil competencial.</p>
