@@ -92,6 +92,16 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
     return Object.keys(answers).length >= totalQuestions;
   }, [answers, areas]);
   
+  const averageScore = useMemo(() => {
+    if (areaScores.length === 0) return 0;
+    const totalScore = areaScores.reduce((sum, s) => sum + s.score, 0);
+    return totalScore / areaScores.length;
+  }, [areaScores]);
+
+  const overallLevel = useMemo(() => {
+    return getProficiencyLevel(averageScore);
+  }, [averageScore]);
+
   const radarChartData = useMemo(() => {
       return areaScores.map(area => ({
           label: area.shortTitle,
@@ -392,6 +402,14 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
         <p className="mt-2 text-slate-500">Este es un resumen de tus competencias digitales, basado en tus respuestas.</p>
       </div>
       
+      {allQuestionsAnswered && (
+        <div className="mt-6 bg-sky-50 border border-sky-200 p-4 rounded-xl text-center shadow-sm">
+            <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General</p>
+            <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name} <span className="text-lg font-medium text-slate-500">({overallLevel.code})</span></h2>
+            <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">{overallLevel.description}</p>
+        </div>
+      )}
+
       <div className="mt-8 max-w-4xl mx-auto space-y-8">
         <div className="bg-white p-6 rounded-xl shadow-md">
             <h2 className="text-xl font-bold text-slate-700 text-center">Resumen de Competencias</h2>

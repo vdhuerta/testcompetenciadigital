@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrophyIcon } from './components/icons/Icons';
 
-export type IconName = 'SparklesIcon' | 'FireIcon' | 'ChartBarIcon' | 'CheckBadgeIcon' | 'LightBulbIcon' | 'BellIcon' | 'TrophyIcon';
+export type IconName = 'SparklesIcon' | 'FireIcon' | 'ChartBarIcon' | 'CheckBadgeIcon' | 'LightBulbIcon' | 'BellIcon' | 'TrophyIcon' | 'StarIcon';
 
 export interface Question {
   id: number;

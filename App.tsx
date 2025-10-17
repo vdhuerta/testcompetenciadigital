@@ -17,7 +17,7 @@ import { BadgeUnlockedModal } from './components/BadgeUnlockedModal';
 import { NotificationHistoryModal } from './components/NotificationHistoryModal';
 import { AREAS, ALL_BADGES } from './constants';
 import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task, Streak, Badge, IconName } from './types';
-import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon, TrophyIcon } from './components/icons/Icons';
+import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon, TrophyIcon, StarIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
   const [userData, setUserData] = useState<UserData | null>(() => {
@@ -84,6 +84,7 @@ export default function App(): React.ReactElement {
     LightBulbIcon,
     BellIcon,
     TrophyIcon,
+    StarIcon,
   };
 
 
@@ -191,7 +192,7 @@ export default function App(): React.ReactElement {
                 addNotification({
                     id: `badge-${badge.id}`,
                     text: `¡Logro desbloqueado: ${badge.title}!`,
-                    icon: 'TrophyIcon',
+                    icon: 'StarIcon',
                 });
             }
         }
