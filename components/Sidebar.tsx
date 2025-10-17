@@ -1,5 +1,5 @@
 import React from 'react';
-import { MenuIcon, UserCircleIcon, ChartBarIcon, HomeIcon, TrashIcon, CheckBadgeIcon, TrophyIcon } from './icons/Icons';
+import { MenuIcon, UserCircleIcon, ChartBarIcon, HomeIcon, TrashIcon, CheckBadgeIcon, StarIcon } from './icons/Icons';
 import type { AppView } from '../types';
 
 interface SidebarIconProps {
@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onRes
                     isActive={currentView === 'tasks'}
                  />
                  <SidebarIcon 
-                    icon={<TrophyIcon className="h-6 w-6"/>} 
+                    icon={<StarIcon className="h-6 w-6"/>} 
                     text="Logros"
                     onClick={() => onNavigate('achievements')}
                     isActive={currentView === 'achievements'}
