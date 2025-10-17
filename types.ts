@@ -1,6 +1,8 @@
 import React from 'react';
 import { TrophyIcon } from './components/icons/Icons';
 
+export type IconName = 'SparklesIcon' | 'FireIcon' | 'ChartBarIcon' | 'CheckBadgeIcon' | 'LightBulbIcon' | 'BellIcon' | 'TrophyIcon';
+
 export interface Question {
   id: number;
   text: string;
@@ -41,8 +43,12 @@ export interface Notification {
     id: string;
     text: string;
     timestamp: string; // ISO Date string
-    icon: React.ComponentType<{ className?: string }>;
+    icon: IconName;
     isNew?: boolean;
+}
+
+export interface DisplayNotification extends Omit<Notification, 'icon'> {
+    icon: React.ComponentType<{ className?: string }>;
 }
 
 // Types for Netlify functions payload

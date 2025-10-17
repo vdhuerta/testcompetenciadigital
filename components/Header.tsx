@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SearchIcon, BellIcon, MenuIcon } from './icons/Icons';
-import type { SearchResult, Notification } from '../types';
+import type { SearchResult, DisplayNotification } from '../types';
 import { formatTimestamp } from '../utils/formatTimestamp';
 
 interface HeaderProps {
@@ -8,7 +8,7 @@ interface HeaderProps {
   onSearchChange: (query: string) => void;
   searchResults: SearchResult[];
   onSearchResultClick: (result: SearchResult) => void;
-  notifications: Notification[];
+  notifications: DisplayNotification[];
   onMenuClick: () => void;
   onShowAllNotifications: () => void;
 }

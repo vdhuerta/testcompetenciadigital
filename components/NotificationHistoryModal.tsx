@@ -1,12 +1,12 @@
 import React from 'react';
-import type { Notification } from '../types';
+import type { DisplayNotification } from '../types';
 import { XIcon } from './icons/Icons';
 import { formatTimestamp } from '../utils/formatTimestamp';
 
 interface NotificationHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  notifications: Notification[];
+  notifications: DisplayNotification[];
 }
 
 export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> = ({ isOpen, onClose, notifications }) => {

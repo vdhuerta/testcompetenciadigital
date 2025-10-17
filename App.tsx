@@ -16,7 +16,7 @@ import { MobileMenu } from './components/MobileMenu';
 import { BadgeUnlockedModal } from './components/BadgeUnlockedModal';
 import { NotificationHistoryModal } from './components/NotificationHistoryModal';
 import { AREAS, ALL_BADGES } from './constants';
-import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task, Streak, Badge } from './types';
+import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task, Streak, Badge, IconName } from './types';
 import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon, TrophyIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
@@ -75,6 +75,16 @@ export default function App(): React.ReactElement {
       const saved = localStorage.getItem('allNotifications');
       return saved ? JSON.parse(saved) : [];
   });
+
+  const iconMap: Record<IconName, React.ComponentType<{ className?: string }>> = {
+    SparklesIcon,
+    FireIcon,
+    ChartBarIcon,
+    CheckBadgeIcon,
+    LightBulbIcon,
+    BellIcon,
+    TrophyIcon,
+  };
 
 
   useEffect(() => {
@@ -181,7 +191,7 @@ export default function App(): React.ReactElement {
                 addNotification({
                     id: `badge-${badge.id}`,
                     text: `¡Logro desbloqueado: ${badge.title}!`,
-                    icon: TrophyIcon,
+                    icon: 'TrophyIcon',
                 });
             }
         }
@@ -191,7 +201,8 @@ export default function App(): React.ReactElement {
     useEffect(() => {
         if (userData) handleUnlockBadge('onboarding_complete');
 
-        const completedAreas = Object.values(progressByArea).filter(p => p >= 100).length;
+        // FIX: Cast `p` to a number to prevent a type error where it might be inferred as `unknown`.
+        const completedAreas = Object.values(progressByArea).filter(p => (p as number) >= 100).length;
         if (completedAreas > 0) handleUnlockBadge('complete_one_area');
         if (completedAreas === AREAS.length) handleUnlockBadge('complete_all_areas');
 
@@ -239,7 +250,7 @@ export default function App(): React.ReactElement {
              addOrUpdateNotification({
                 id: 'welcome',
                 text: '¡Te damos la bienvenida a la autoevaluación!',
-                icon: SparklesIcon,
+                icon: 'SparklesIcon',
             });
         }
         
@@ -247,7 +258,7 @@ export default function App(): React.ReactElement {
             addOrUpdateNotification({
                 id: 'streak',
                 text: `¡Llevas una racha de ${streak.count} días! ¡Sigue así!`,
-                icon: FireIcon,
+                icon: 'FireIcon',
             });
         }
 
@@ -256,7 +267,7 @@ export default function App(): React.ReactElement {
             addOrUpdateNotification({
                 id: 'progress',
                 text: `Llevas un ${progressInt}% completado. ¡Sigue así!`,
-                icon: ChartBarIcon,
+                icon: 'ChartBarIcon',
             });
         }
 
@@ -264,7 +275,7 @@ export default function App(): React.ReactElement {
             addOrUpdateNotification({
                 id: 'task-progress',
                 text: `Llevas un ${Math.round(taskProgress)}% de tu plan de tareas completado.`,
-                icon: CheckBadgeIcon,
+                icon: 'CheckBadgeIcon',
             });
         }
 
@@ -273,7 +284,7 @@ export default function App(): React.ReactElement {
             addOrUpdateNotification({
                 id: 'remaining',
                 text: `Te quedan ${questionsLeft} preguntas para finalizar.`,
-                icon: LightBulbIcon,
+                icon: 'LightBulbIcon',
             });
         }
 
@@ -289,7 +300,7 @@ export default function App(): React.ReactElement {
                 addOrUpdateNotification({
                     id: 'next-step',
                     text: `Tu área con menor progreso es ${areaInfo.title}. ¿Continuamos por ahí?`,
-                    icon: BellIcon,
+                    icon: 'BellIcon',
                 });
             }
         }
@@ -359,10 +370,14 @@ export default function App(): React.ReactElement {
     setIsResetModalOpen(false);
   };
 
-  const displayedNotifications = useMemo((): Notification[] => {
+  const displayedNotifications = useMemo(() => {
     return [...allNotifications]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 4);
+      .slice(0, 4)
+      .map(n => ({
+        ...n,
+        icon: iconMap[n.icon] || BellIcon
+      }));
   }, [allNotifications]);
 
   const filteredAreas = useMemo(() => {
@@ -558,7 +573,7 @@ export default function App(): React.ReactElement {
           <NotificationHistoryModal
             isOpen={isNotificationHistoryOpen}
             onClose={() => setIsNotificationHistoryOpen(false)}
-            notifications={allNotifications}
+            notifications={allNotifications.map(n => ({...n, icon: iconMap[n.icon] || BellIcon }))}
           />
       )}
     </div>
