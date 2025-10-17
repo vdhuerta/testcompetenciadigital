@@ -1,5 +1,5 @@
 import React from 'react';
-import { HomeIcon, MenuIcon as AreasIcon, UserCircleIcon, ChartBarIcon, TrashIcon, XIcon, CheckBadgeIcon } from './icons/Icons';
+import { HomeIcon, MenuIcon as AreasIcon, UserCircleIcon, ChartBarIcon, TrashIcon, XIcon, CheckBadgeIcon, TrophyIcon } from './icons/Icons';
 import type { AppView } from '../types';
 
 interface MobileMenuProps {
@@ -89,6 +89,12 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, current
                       text="Plan de Tareas"
                       onClick={() => handleNavigate('tasks')}
                       isActive={currentView === 'tasks'}
+                  />
+                  <NavItem 
+                      icon={<TrophyIcon className="h-6 w-6"/>} 
+                      text="Logros"
+                      onClick={() => handleNavigate('achievements')}
+                      isActive={currentView === 'achievements'}
                   />
               </nav>
 

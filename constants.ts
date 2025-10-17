@@ -1,5 +1,5 @@
-import type { Area } from './types';
-import { BookOpenIcon, BriefcaseIcon, LightBulbIcon, PresentationChartLineIcon, SparklesIcon, UsersIcon, GlobeAltIcon } from './components/icons/Icons';
+import type { Area, Badge } from './types';
+import { BookOpenIcon, BriefcaseIcon, LightBulbIcon, PresentationChartLineIcon, SparklesIcon, UsersIcon, GlobeAltIcon, StarIcon, FireIcon, CheckBadgeIcon, AcademicCapIcon, PencilIcon } from './components/icons/Icons';
 
 export const COUNTRIES = ['Chile', 'España', 'México', 'Argentina', 'Colombia'];
 
@@ -147,4 +147,92 @@ export const AREAS: Area[] = [
         { id: 703, text: 'Promuevo los principios de la ciencia abierta, como el acceso libre a publicaciones y la colaboración científica transparente, adaptándolos al nivel educativo.', options },
     ],
   },
+];
+
+
+export const ALL_BADGES: Badge[] = [
+    {
+        id: 'onboarding_complete',
+        title: 'Primer Paso',
+        description: 'Has completado la configuración inicial. ¡El viaje ha comenzado!',
+        icon: StarIcon,
+    },
+    {
+        id: 'complete_one_area',
+        title: 'Explorador Curioso',
+        description: 'Completaste tu primera área de competencia. ¡Sigue así!',
+        icon: LightBulbIcon,
+    },
+    {
+        id: 'complete_all_areas',
+        title: 'Maestro del Saber Digital',
+        description: '¡Felicidades! Has completado todas las áreas de la autoevaluación.',
+        icon: AcademicCapIcon,
+    },
+    {
+        id: 'generate_ai_plan',
+        title: 'Arquitecto del Futuro',
+        description: 'Generaste tu primer plan de desarrollo profesional con IA.',
+        icon: SparklesIcon,
+    },
+    {
+        id: 'generate_tasks',
+        title: 'Estratega en Acción',
+        description: 'Convertiste tu plan de desarrollo en una lista de tareas accionables.',
+        icon: PencilIcon,
+    },
+    {
+        id: 'streak_3_days',
+        title: 'Racha de Bronce',
+        description: 'Has usado la aplicación por 3 días consecutivos. ¡La constancia es clave!',
+        icon: FireIcon,
+    },
+    {
+        id: 'streak_7_days',
+        title: 'Racha de Plata',
+        description: '¡Increíble! 7 días seguidos de autoevaluación. Eres un ejemplo de compromiso.',
+        icon: FireIcon,
+    },
+    {
+        id: 'expert_1',
+        title: 'Experto en Compromiso',
+        description: 'Alcanzaste el nivel Experto en el área de Compromiso Profesional.',
+        icon: BriefcaseIcon,
+    },
+    {
+        id: 'expert_2',
+        title: 'Experto en Recursos',
+        description: 'Alcanzaste el nivel Experto en el área de Recursos Digitales.',
+        icon: BookOpenIcon,
+    },
+    {
+        id: 'expert_3',
+        title: 'Experto en Enseñanza',
+        description: 'Alcanzaste el nivel Experto en el área de Enseñanza y Aprendizaje.',
+        icon: PresentationChartLineIcon,
+    },
+    {
+        id: 'expert_4',
+        title: 'Experto en Evaluación',
+        description: 'Alcanzaste el nivel Experto en el área de Evaluación.',
+        icon: CheckBadgeIcon,
+    },
+    {
+        id: 'expert_5',
+        title: 'Experto en Empoderamiento',
+        description: 'Alcanzaste el nivel Experto en el área de Empoderamiento del Alumnado.',
+        icon: SparklesIcon,
+    },
+    {
+        id: 'expert_6',
+        title: 'Experto en Desarrollo',
+        description: 'Alcanzaste el nivel Experto en el área de Desarrollo de Competencias.',
+        icon: UsersIcon,
+    },
+    {
+        id: 'expert_7',
+        title: 'Experto en Educación Abierta',
+        description: 'Alcanzaste el nivel Experto en el área de Educación Abierta.',
+        icon: GlobeAltIcon,
+    }
 ];

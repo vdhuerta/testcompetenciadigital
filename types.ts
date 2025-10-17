@@ -25,7 +25,7 @@ export interface Answer {
   optionIndex: number;
 }
 
-export type AppView = 'dashboard' | 'areas' | 'profile' | 'results' | 'tasks';
+export type AppView = 'dashboard' | 'areas' | 'profile' | 'results' | 'tasks' | 'achievements';
 
 export interface SearchResult {
   type: 'area' | 'question';
@@ -75,4 +75,16 @@ export interface Task {
   text: string;
   completed: boolean;
   areaTitle: string;
+}
+
+export interface Badge {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export interface Streak {
+  count: number;
+  lastVisit: string; // ISO date string (e.g., "2023-10-27")
 }

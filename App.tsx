@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -6,14 +7,16 @@ import { AreaCard } from './components/AreaCard';
 import { AreaList } from './components/AreaList';
 import { Results } from './components/Results';
 import { TaskPlan } from './components/TaskPlan';
+import { Achievements } from './components/Achievements';
 import { QuestionModal } from './components/QuestionModal';
 import { ProgressBar } from './components/ProgressBar';
 import { CompletionModal } from './components/CompletionModal';
 import { ResetConfirmationModal } from './components/ResetConfirmationModal';
 import { MobileMenu } from './components/MobileMenu';
-import { AREAS } from './constants';
-import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task } from './types';
-import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon } from './components/icons/Icons';
+import { BadgeUnlockedModal } from './components/BadgeUnlockedModal';
+import { AREAS, ALL_BADGES } from './constants';
+import type { UserData, Area, AppView, SearchResult, Notification, PlanState, Task, Streak, Badge } from './types';
+import { BellIcon, ChartBarIcon, LightBulbIcon, SparklesIcon, CheckBadgeIcon, FireIcon } from './components/icons/Icons';
 
 export default function App(): React.ReactElement {
   const [userData, setUserData] = useState<UserData | null>(() => {
@@ -36,6 +39,8 @@ export default function App(): React.ReactElement {
   });
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState<Badge | null>(null);
+
 
   // State for persisting the generated AI plan
   const [planSummary, setPlanSummary] = useState<PlanState>(() => {
@@ -50,6 +55,17 @@ export default function App(): React.ReactElement {
   
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('tasks');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Gamification state
+  const [streak, setStreak] = useState<Streak>(() => {
+    const saved = localStorage.getItem('streak');
+    return saved ? JSON.parse(saved) : { count: 0, lastVisit: '' };
+  });
+
+  const [earnedBadges, setEarnedBadges] = useState<string[]>(() => {
+    const saved = localStorage.getItem('earnedBadges');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -82,6 +98,14 @@ export default function App(): React.ReactElement {
     localStorage.setItem('tasks', JSON.stringify(tasks));
   }, [tasks]);
   
+  useEffect(() => {
+    localStorage.setItem('streak', JSON.stringify(streak));
+  }, [streak]);
+
+  useEffect(() => {
+    localStorage.setItem('earnedBadges', JSON.stringify(earnedBadges));
+  }, [earnedBadges]);
+  
   const totalQuestions = useMemo(() => AREAS.reduce((sum, area) => sum + area.questions.length, 0), []);
   const answeredCount = Object.keys(answers).length;
 
@@ -94,6 +118,76 @@ export default function App(): React.ReactElement {
     const completedCount = tasks.filter(t => t.completed).length;
     return (completedCount / tasks.length) * 100;
   }, [tasks]);
+  
+    const progressByArea = useMemo(() => {
+        const progress: Record<number, number> = {};
+        AREAS.forEach(area => {
+        const answeredQuestions = area.questions.filter(q => answers[q.id] !== undefined);
+        progress[area.id] = (answeredQuestions.length / area.questions.length) * 100;
+        });
+        return progress;
+    }, [answers]);
+    
+    // Streak Logic
+    useEffect(() => {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
+        if (streak.lastVisit !== todayStr) {
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (streak.lastVisit === yesterdayStr) {
+                setStreak({ count: streak.count + 1, lastVisit: todayStr });
+            } else {
+                setStreak({ count: 1, lastVisit: todayStr });
+            }
+        }
+    }, []); // Runs only once on app load
+
+
+    const handleUnlockBadge = useCallback((badgeId: string) => {
+        if (!earnedBadges.includes(badgeId)) {
+            const badge = ALL_BADGES.find(b => b.id === badgeId);
+            if (badge) {
+                setEarnedBadges(prev => [...prev, badgeId]);
+                setNewlyUnlockedBadge(badge);
+            }
+        }
+    }, [earnedBadges]);
+
+    // Badge Unlocking Logic
+    useEffect(() => {
+        if (userData) handleUnlockBadge('onboarding_complete');
+
+        const completedAreas = Object.values(progressByArea).filter(p => p >= 100).length;
+        if (completedAreas > 0) handleUnlockBadge('complete_one_area');
+        if (completedAreas === AREAS.length) handleUnlockBadge('complete_all_areas');
+
+        if (planSummary.content) handleUnlockBadge('generate_ai_plan');
+        if (tasks.length > 0) handleUnlockBadge('generate_tasks');
+
+        if (streak.count >= 3) handleUnlockBadge('streak_3_days');
+        if (streak.count >= 7) handleUnlockBadge('streak_7_days');
+
+        AREAS.forEach(area => {
+            const areaQuestions = area.questions.map(q => q.id);
+            const areaAnswers = Object.entries(answers)
+                .filter(([questionId]) => areaQuestions.includes(Number(questionId)))
+                .map(([, optionIndex]) => optionIndex as number);
+
+            if (areaAnswers.length === area.questions.length) {
+                const score = areaAnswers.reduce((sum: number, val: number) => sum + val, 0) / areaAnswers.length;
+                // FIX: Explicitly typed accumulator and value in reduce to prevent 'score' from being inferred as 'unknown'.
+                if (score >= 4) { // 'Expert' level
+                    handleUnlockBadge(`expert_${area.id}`);
+                }
+            }
+        });
+
+    }, [userData, progressByArea, planSummary, tasks, streak, answers, handleUnlockBadge]);
+
 
   const handleOnboardingComplete = (data: UserData) => {
     setUserData(data);
@@ -140,6 +234,8 @@ export default function App(): React.ReactElement {
     localStorage.removeItem('planSummary');
     localStorage.removeItem('areaPlans');
     localStorage.removeItem('tasks');
+    localStorage.removeItem('streak');
+    localStorage.removeItem('earnedBadges');
     
     setUserData(null);
     setAnswers({});
@@ -147,19 +243,12 @@ export default function App(): React.ReactElement {
     setPlanSummary({ content: '', isLoading: false, error: null });
     setAreaPlans({});
     setTasks([]);
+    setStreak({ count: 0, lastVisit: '' });
+    setEarnedBadges([]);
     setCurrentView('dashboard');
 
     setIsResetModalOpen(false);
   };
-
-  const progressByArea = useMemo(() => {
-    const progress: Record<number, number> = {};
-    AREAS.forEach(area => {
-      const answeredQuestions = area.questions.filter(q => answers[q.id] !== undefined);
-      progress[area.id] = (answeredQuestions.length / area.questions.length) * 100;
-    });
-    return progress;
-  }, [answers]);
 
   const notifications = useMemo((): Notification[] => {
     const alerts: Notification[] = [];
@@ -170,6 +259,15 @@ export default function App(): React.ReactElement {
         icon: SparklesIcon,
     });
     
+    if (streak.count > 1) {
+        alerts.push({
+            id: 'streak',
+            text: `¡Llevas una racha de ${streak.count} días! ¡Sigue así!`,
+            time: 'motivación',
+            icon: FireIcon,
+        });
+    }
+
     const progressInt = Math.round(overallProgress);
     if (progressInt > 0 && progressInt < 100) {
         alerts.push({
@@ -222,7 +320,7 @@ export default function App(): React.ReactElement {
 
 
     return alerts.slice(0, 4);
-  }, [overallProgress, progressByArea, answeredCount, totalQuestions, tasks, taskProgress]);
+  }, [overallProgress, progressByArea, answeredCount, totalQuestions, tasks, taskProgress, streak]);
 
   const filteredAreas = useMemo(() => {
     if (!searchQuery) return AREAS;
@@ -372,6 +470,13 @@ export default function App(): React.ReactElement {
                 taskProgress={taskProgress}
               />
             )}
+            {currentView === 'achievements' && (
+              <Achievements
+                earnedBadges={earnedBadges}
+                allBadges={ALL_BADGES}
+                streak={streak.count}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -397,6 +502,12 @@ export default function App(): React.ReactElement {
         <ResetConfirmationModal
           onConfirm={handleConfirmReset}
           onCancel={handleCancelReset}
+        />
+      )}
+      {newlyUnlockedBadge && (
+        <BadgeUnlockedModal
+            badge={newlyUnlockedBadge}
+            onClose={() => setNewlyUnlockedBadge(null)}
         />
       )}
     </div>
