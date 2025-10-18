@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState } from '../types';
 import { RadarChart } from './RadarChart';
@@ -324,13 +325,37 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                 .plan-level { margin: 0.5rem 0; }
                 .plan-action { margin: 0.25rem 0 0.25rem 1.5rem; text-indent: -1.5rem; }
                 .plan-action::before { content: "- "; }
+                .copy-button {
+                    position: fixed;
+                    top: 1.5rem;
+                    right: 1.5rem;
+                    padding: 0.75rem 1rem;
+                    background-color: #0ea5e9; /* sky-500 */
+                    color: white;
+                    border: none;
+                    border-radius: 0.5rem;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background-color 0.2s, color 0.2s;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    z-index: 10;
+                }
+                .copy-button:hover {
+                    background-color: #0284c7; /* sky-600 */
+                }
+                .copy-button.copied {
+                    background-color: #14b8a6; /* teal-500 */
+                }
                 @media print {
                   body { background-color: #fff; }
                   .container { box-shadow: none; border: none; padding: 0; margin: 0; }
+                  .copy-button { display: none; }
                 }
             </style>
         </head>
         <body>
+            <button id="copyBtn" class="copy-button">Copiar al portapapeles</button>
             <div class="container">
                 <h1>${summaryTitle}</h1>
                 <p class="summary-level">${summaryLevel}</p>
@@ -357,6 +382,31 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                     </div>
                 `).join('')}
             </div>
+            <script>
+                const copyBtn = document.getElementById('copyBtn');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        copyBtn.style.display = 'none';
+                        const contentToCopy = document.querySelector('.container').innerText;
+                        copyBtn.style.display = 'block';
+
+                        navigator.clipboard.writeText(contentToCopy).then(() => {
+                            copyBtn.textContent = '¡Copiado!';
+                            copyBtn.classList.add('copied');
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copiar al portapapeles';
+                                copyBtn.classList.remove('copied');
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Error al copiar: ', err);
+                            copyBtn.textContent = 'Error al copiar';
+                            setTimeout(() => {
+                                copyBtn.textContent = 'Copiar al portapapeles';
+                            }, 2000);
+                        });
+                    });
+                }
+            <\/script>
         </body>
         </html>
     `;
