@@ -518,6 +518,8 @@ export default function App(): React.ReactElement {
                 setPlanSummary={setPlanSummary}
                 areaPlans={areaPlans}
                 setAreaPlans={setAreaPlans}
+                tasks={tasks}
+                setTasks={setTasks}
               />
             )}
             {currentView === 'tasks' && (

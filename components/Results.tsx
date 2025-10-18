@@ -1,9 +1,9 @@
 
-
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState } from '../types';
+import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState, Task } from '../types';
 import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
+import { GeneratePlanConfirmationModal } from './GeneratePlanConfirmationModal';
 
 
 interface ResultsProps {
@@ -13,6 +13,8 @@ interface ResultsProps {
   setPlanSummary: React.Dispatch<React.SetStateAction<PlanState>>;
   areaPlans: Record<number, PlanState>;
   setAreaPlans: React.Dispatch<React.SetStateAction<Record<number, PlanState>>>;
+  tasks: Task[];
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
 
 const getProficiencyLevel = (score: number): { name: string; code: string; description: string; key: 'novice' | 'integrator' | 'expert' } => {
@@ -63,8 +65,9 @@ const PlanSkeletonLoader: React.FC = () => (
 );
 
 
-export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, setPlanSummary, areaPlans, setAreaPlans }) => {
+export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, setPlanSummary, areaPlans, setAreaPlans, tasks, setTasks }) => {
   const [isGeneratingPlans, setIsGeneratingPlans] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   
   const areaScores = useMemo(() => {
     return areas.map(area => {
@@ -141,7 +144,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
     return summary;
   }, [allQuestionsAnswered, areaScores]);
 
-  const handleGeneratePlan = useCallback(async () => {
+  const generateAndFetchPlans = useCallback(async () => {
     setIsGeneratingPlans(true);
     setPlanSummary({ content: '', isLoading: true, error: null });
 
@@ -222,6 +225,20 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
         setIsGeneratingPlans(false);
     }
   }, [areaScores, areas, setPlanSummary, setAreaPlans]);
+  
+  const handleGeneratePlanClick = () => {
+    if (planSummary.content && tasks.length > 0) {
+      setIsConfirmModalOpen(true);
+    } else {
+      generateAndFetchPlans();
+    }
+  };
+  
+  const handleConfirmGenerateAndClearTasks = () => {
+    setTasks([]);
+    setIsConfirmModalOpen(false);
+    generateAndFetchPlans();
+  };
 
   const handleDownloadPlan = useCallback(() => {
     if (!allPlansGenerated) {
@@ -386,10 +403,8 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                 const copyBtn = document.getElementById('copyBtn');
                 if (copyBtn) {
                     copyBtn.addEventListener('click', () => {
-                        copyBtn.style.display = 'none';
                         const contentToCopy = document.querySelector('.container').innerText;
-                        copyBtn.style.display = 'block';
-
+                        
                         navigator.clipboard.writeText(contentToCopy).then(() => {
                             copyBtn.textContent = '¡Copiado!';
                             copyBtn.classList.add('copied');
@@ -509,7 +524,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                     <button 
-                        onClick={handleGeneratePlan}
+                        onClick={handleGeneratePlanClick}
                         disabled={!allQuestionsAnswered || isGeneratingPlans}
                         className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-brand-accent border border-transparent rounded-lg shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
                     >
@@ -571,6 +586,12 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
             })}
         </div>
       </div>
+      {isConfirmModalOpen && (
+          <GeneratePlanConfirmationModal
+              onConfirm={handleConfirmGenerateAndClearTasks}
+              onCancel={() => setIsConfirmModalOpen(false)}
+          />
+      )}
     </>
   );
 };
