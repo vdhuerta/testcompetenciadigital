@@ -68,6 +68,15 @@ export const BLOOM_TAXONOMY = [
     { index: 5, name: 'Crear', key: 'crear', description: 'Generar ideas, productos o enfoques pedagógicos nuevos y originales utilizando tecnologías.' },
 ];
 
+export const DIGCOMPEDU_LEVELS = [
+    { index: 0, name: 'Novel (A1)', description: 'Eres consciente del potencial de las tecnologías, pero tienes poca experiencia en su aplicación pedagógica.' },
+    { index: 1, name: 'Explorador (A2)', description: 'Has empezado a experimentar con tecnologías digitales, aunque sin un enfoque coherente.' },
+    { index: 2, name: 'Integrador (B1)', description: 'Integras tecnologías digitales en diversas prácticas para mejorar la enseñanza y el aprendizaje.' },
+    { index: 3, name: 'Experto (B2)', description: 'Utilizas una variedad de tecnologías digitales de forma creativa y crítica para mejorar tus actividades profesionales.' },
+    { index: 4, name: 'Líder (C1)', description: 'Tienes un enfoque consistente e integral, reflexionas sobre tus prácticas y eres una fuente de inspiración para otros.' },
+    { index: 5, name: 'Pionero (C2)', description: 'Cuestionas las prácticas actuales, innovas con tecnologías y desarrollas nuevos enfoques pedagógicos.' },
+];
+
 export const AREAS: Area[] = [
   {
     id: 1,

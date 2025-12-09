@@ -4,7 +4,7 @@ import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
 import { GeneratePlanConfirmationModal } from './GeneratePlanConfirmationModal';
 import { RECOMMENDATIONS } from '../recommendations';
-import { BLOOM_TAXONOMY } from '../constants';
+import { BLOOM_TAXONOMY, DIGCOMPEDU_LEVELS } from '../constants';
 
 
 interface ResultsProps {
@@ -23,8 +23,8 @@ const getProficiencyLevel = (score: number) => {
     // score 0-0.99 -> level 0, 1-1.99 -> level 1, etc.
     const levelIndex = Math.floor(score);
     // Cap at max index 5 for a perfect score of 5.
-    const cappedIndex = Math.min(levelIndex, BLOOM_TAXONOMY.length - 1);
-    return BLOOM_TAXONOMY[cappedIndex];
+    const cappedIndex = Math.min(levelIndex, DIGCOMPEDU_LEVELS.length - 1);
+    return DIGCOMPEDU_LEVELS[cappedIndex];
 };
 
 const cardColors = [
@@ -398,7 +398,7 @@ Este plan ofrece una guía con acciones concretas para fortalecer tus competenci
       <div className="mt-8 max-w-4xl mx-auto space-y-8">
         {allQuestionsAnswered && (
             <div className="bg-sky-50 border border-sky-200 p-4 rounded-xl text-center shadow-sm">
-                <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General (Taxonomía de Bloom)</p>
+                <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General (DigCompEdu)</p>
                 <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name}</h2>
                 <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">{overallLevel.description}</p>
             </div>
