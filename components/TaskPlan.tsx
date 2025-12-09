@@ -16,20 +16,24 @@ export const TaskPlan: React.FC<TaskPlanProps> = ({ planSummary, areaPlans, area
 
   const handleGenerateTasks = () => {
     const newTasks: Task[] = [];
+    const parser = new DOMParser();
+
     areas.forEach(area => {
       const plan = areaPlans[area.id];
       if (plan && plan.content) {
-        const recommendations = plan.content.split('\n')
-          .filter(line => line.trim().startsWith('- '))
-          .map(line => line.trim().substring(2).trim());
-
-        recommendations.forEach((rec, index) => {
-          newTasks.push({
-            id: `${area.id}-${index}-${Date.now()}`,
-            text: rec,
-            completed: false,
-            areaTitle: area.title,
-          });
+        const doc = parser.parseFromString(plan.content, 'text/html');
+        const listItems = doc.querySelectorAll('li');
+        
+        listItems.forEach((li, index) => {
+          const taskText = li.textContent?.trim();
+          if (taskText) {
+            newTasks.push({
+              id: `${area.id}-${index}-${Date.now()}`,
+              text: taskText,
+              completed: false,
+              areaTitle: area.title,
+            });
+          }
         });
       }
     });
@@ -56,7 +60,7 @@ export const TaskPlan: React.FC<TaskPlanProps> = ({ planSummary, areaPlans, area
         <p className="mt-2 text-slate-500">Convierte tu plan de desarrollo en acciones concretas.</p>
         <div className="mt-8 text-center bg-white p-12 rounded-xl shadow-md">
           <h2 className="text-xl font-semibold text-slate-700">Aún no has generado tu plan de desarrollo.</h2>
-          <p className="mt-2 text-slate-500">Ve a la sección de 'Resultados' para generar tu plan de desarrollo con IA. Una vez que lo tengas, podrás gestionar tus tareas aquí.</p>
+          <p className="mt-2 text-slate-500">Ve a la sección de 'Resultados' para generar tu plan de desarrollo. Una vez que lo tengas, podrás gestionar tus tareas aquí.</p>
         </div>
       </div>
     );

@@ -1,9 +1,10 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Area, GenerateSummaryPayload, GeneratePlanPayload, PlanState, Task } from '../types';
+import type { Area, PlanState, Task } from '../types';
 import { RadarChart } from './RadarChart';
 import { SparklesIcon, DownloadIcon } from './icons/Icons';
 import { GeneratePlanConfirmationModal } from './GeneratePlanConfirmationModal';
+import { RECOMMENDATIONS } from '../recommendations';
+import { BLOOM_TAXONOMY } from '../constants';
 
 
 interface ResultsProps {
@@ -17,10 +18,13 @@ interface ResultsProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
 
-const getProficiencyLevel = (score: number): { name: string; code: string; description: string; key: 'novice' | 'integrator' | 'expert' } => {
-  if (score < 2) return { name: 'Novato', code: 'A1-A2', description: 'Reconoce el potencial de las herramientas digitales y está comenzando a explorar su uso con apoyo.', key: 'novice' };
-  if (score < 4) return { name: 'Integrador', code: 'B1-B2', description: 'Utiliza las tecnologías digitales de forma autónoma y las integra en su práctica docente para mejorarla.', key: 'integrator' };
-  return { name: 'Experto', code: 'C1-C2', description: 'Aplica las tecnologías con confianza y de forma creativa. Es un referente que guía a otros en su desarrollo.', key: 'expert' };
+const getProficiencyLevel = (score: number) => {
+    // The score is an average of option indices (0-5).
+    // score 0-0.99 -> level 0, 1-1.99 -> level 1, etc.
+    const levelIndex = Math.floor(score);
+    // Cap at max index 5 for a perfect score of 5.
+    const cappedIndex = Math.min(levelIndex, BLOOM_TAXONOMY.length - 1);
+    return BLOOM_TAXONOMY[cappedIndex];
 };
 
 const cardColors = [
@@ -28,45 +32,12 @@ const cardColors = [
 ];
 
 const FormattedPlanContent: React.FC<{ content: string }> = ({ content }) => {
-    const lines = content.split('\n').filter(line => line.trim() !== '');
-    
-    return (
-        <div className="space-y-3">
-            {lines.map((line, index) => {
-                if (line.startsWith('- ')) {
-                    return (
-                        <p key={index} className="text-slate-600 text-sm ml-4">{line}</p>
-                    );
-                }
-                const parts = line.split(':');
-                const level = parts[0];
-                const rest = parts.slice(1).join(':').trim();
-                
-                return (
-                    <div key={index}>
-                        <p className="font-semibold text-slate-700 text-sm">
-                            {level}: <span className="font-normal text-slate-600">{rest}</span>
-                        </p>
-                    </div>
-                );
-            })}
-        </div>
-    );
+    // The content is now pre-formatted HTML, so we use dangerouslySetInnerHTML.
+    // The logic is controlled internally, so this is safe.
+    return <div dangerouslySetInnerHTML={{ __html: content }} />;
 };
 
-const PlanSkeletonLoader: React.FC = () => (
-    <div className="space-y-4 animate-pulse">
-        <div className="h-4 bg-slate-200 rounded w-1/3"></div>
-        <div className="h-3 bg-slate-200 rounded w-full"></div>
-        <div className="h-3 bg-slate-200 rounded w-5/6"></div>
-        <div className="h-4 bg-slate-200 rounded w-1/4 mt-4"></div>
-        <div className="h-3 bg-slate-200 rounded w-full"></div>
-    </div>
-);
-
-
 export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, setPlanSummary, areaPlans, setAreaPlans, tasks, setTasks }) => {
-  const [isGeneratingPlans, setIsGeneratingPlans] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   
   const areaScores = useMemo(() => {
@@ -116,7 +87,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
 
   const allPlansGenerated = useMemo(() => (
     planSummary.content &&
-    areaScores.every(area => areaPlans[area.id]?.content && !areaPlans[area.id]?.isLoading)
+    areaScores.every(area => areaPlans[area.id]?.content)
   ), [planSummary, areaPlans, areaScores]);
 
   const profileSummary = useMemo(() => {
@@ -143,101 +114,48 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
     
     return summary;
   }, [allQuestionsAnswered, areaScores]);
-
-  const generateAndFetchPlans = useCallback(async () => {
-    setIsGeneratingPlans(true);
-    setPlanSummary({ content: '', isLoading: true, error: null });
-
-    const initialAreaPlans: Record<number, PlanState> = {};
-    areas.forEach(area => {
-        initialAreaPlans[area.id] = { content: '', isLoading: true, error: null };
-    });
-    setAreaPlans(initialAreaPlans);
-
-    try {
-        const allPromises: Promise<any>[] = [];
-
-        // Summary promise
-        const summaryPayload: GenerateSummaryPayload = {
-          scores: areaScores.map(s => ({ title: s.title, score: s.score, level: { name: s.level.name, code: s.level.code } }))
-        };
-
-        const summaryPromise = fetch('/.netlify/functions/generate-summary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(summaryPayload),
-        })
-        .then(async (res) => {
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({ error: 'Error desconocido al generar resumen.' }));
-                throw new Error(errorData.error || `Error del servidor: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then(data => {
-            setPlanSummary({ content: data.plan ?? '', isLoading: false, error: null });
-        }).catch(error => {
-            const errorMessage = error instanceof Error ? error.message : "Error generando resumen.";
-            setPlanSummary({ content: '', isLoading: false, error: errorMessage });
-        });
-        allPromises.push(summaryPromise);
-        
-        // Area promises
-        areaScores.forEach(area => {
-            const areaPayload: GeneratePlanPayload = {
-              area: { title: area.title, score: area.score }
-            };
-
-            const areaPromise = fetch('/.netlify/functions/generate-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(areaPayload),
-            })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const errorData = await res.json().catch(() => ({ error: `Error en ${area.title}`}));
-                    throw new Error(errorData.error || `Error del servidor: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setAreaPlans(prev => ({
-                    ...prev,
-                    [area.id]: { content: data.plan ?? '', isLoading: false, error: null }
-                }));
-            }).catch(error => {
-                const errorMessage = error instanceof Error ? error.message : `Error en ${area.title}.`;
-                 setAreaPlans(prev => ({
-                    ...prev,
-                    [area.id]: { content: '', isLoading: false, error: errorMessage }
-                }));
-            });
-            allPromises.push(areaPromise);
-        });
-
-        await Promise.allSettled(allPromises);
-
-    } catch (error) {
-        console.error("Error en la generación de planes:", error);
-        const errorMessage = error instanceof Error ? error.message : "Un error desconocido ocurrió.";
-        setPlanSummary({ content: '', isLoading: false, error: `Error general: ${errorMessage}` });
-    } finally {
-        setIsGeneratingPlans(false);
-    }
-  }, [areaScores, areas, setPlanSummary, setAreaPlans]);
   
+  const generatePlansAndSummary = useCallback(() => {
+    const newSummary = `Plan de Desarrollo para la Competencia Digital Docente
+Nivel General: ${overallLevel.name} - Puntuación Promedio: ${averageScore.toFixed(2)}/5
+Este plan ofrece una guía con acciones concretas para fortalecer tus competencias digitales. Las sugerencias están diseñadas para ayudarte a avanzar desde un uso funcional de la tecnología hacia prácticas innovadoras y creativas en tu enseñanza, inspiradas en la Taxonomía de Bloom para la era digital.`;
+    
+    setPlanSummary({ content: newSummary, isLoading: false, error: null });
+
+    const newAreaPlans: Record<number, PlanState> = {};
+    areaScores.forEach(area => {
+        const currentLevelIndex = area.level.index;
+        const targetLevels = BLOOM_TAXONOMY.filter(level => level.index > currentLevelIndex);
+
+        if (targetLevels.length === 0) {
+            newAreaPlans[area.id] = { content: '<div><h5 class="font-bold text-sm text-slate-700">¡Felicidades!</h5><p class="text-sm text-slate-600 mt-1">Has alcanzado el nivel más alto en esta área. El siguiente paso es innovar y compartir tu conocimiento con otros.</p></div>', isLoading: false, error: null };
+        } else {
+            const planContent = targetLevels.map(level => {
+                const recommendationsForLevel = RECOMMENDATIONS[area.id as keyof typeof RECOMMENDATIONS]?.[level.key];
+                if (!recommendationsForLevel || recommendationsForLevel.length === 0) {
+                    return '';
+                }
+                const recsList = recommendationsForLevel.map(rec => `<li>${rec}</li>`).join('');
+                return `<div><h5 class="font-bold mt-3 text-sm text-slate-700">${level.name}</h5><ul class="list-disc list-inside space-y-1 text-slate-600 text-sm mt-1">${recsList}</ul></div>`;
+            }).join('');
+            newAreaPlans[area.id] = { content: planContent, isLoading: false, error: null };
+        }
+    });
+    setAreaPlans(newAreaPlans);
+  }, [areaScores, overallLevel, averageScore, setPlanSummary, setAreaPlans]);
+
   const handleGeneratePlanClick = () => {
     if (planSummary.content && tasks.length > 0) {
       setIsConfirmModalOpen(true);
     } else {
-      generateAndFetchPlans();
+      generatePlansAndSummary();
     }
   };
   
   const handleConfirmGenerateAndClearTasks = () => {
     setTasks([]);
     setIsConfirmModalOpen(false);
-    generateAndFetchPlans();
+    generatePlansAndSummary();
   };
 
   const handleDownloadPlan = useCallback(() => {
@@ -246,17 +164,25 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
     }
 
     const formatPlanContentHTML = (content: string): string => {
-        return content.split('\n')
-            .filter(line => line.trim() !== '')
-            .map(line => {
-                if (line.startsWith('- ')) {
-                    return `<p class="plan-action">${line.substring(2)}</p>`;
+        // The content is now HTML, so we need to adjust it for the PDF/print format
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'text/html');
+        let formatted = '';
+        doc.body.childNodes.forEach(node => {
+            if (node.nodeName === 'DIV') {
+                const h5 = (node as HTMLElement).querySelector('h5');
+                const ul = (node as HTMLElement).querySelector('ul');
+                if (h5) {
+                    formatted += `<p class="plan-level"><strong>${h5.innerText}:</strong></p>`;
                 }
-                const parts = line.split(':');
-                const level = parts[0];
-                const rest = parts.slice(1).join(':').trim();
-                return `<p class="plan-level"><strong>${level}:</strong> ${rest}</p>`;
-            }).join('');
+                if (ul) {
+                    ul.querySelectorAll('li').forEach(li => {
+                        formatted += `<p class="plan-action">${li.innerText}</p>`;
+                    });
+                }
+            }
+        });
+        return formatted;
     };
 
     const generateRadarChartSVG = (data: { label: string; value: number }[]): string => {
@@ -339,7 +265,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                 .area-header .level { font-weight: 700; color: #1e293b; }
                 .area-header .score { font-size: 0.875rem; color: #64748b; }
                 .area-body { padding: 1.5rem; }
-                .plan-level { margin: 0.5rem 0; }
+                .plan-level { margin: 1rem 0 0.5rem; }
                 .plan-action { margin: 0.25rem 0 0.25rem 1.5rem; text-indent: -1.5rem; }
                 .plan-action::before { content: "- "; }
                 .copy-button {
@@ -391,9 +317,10 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                                 <h3>${area.title}</h3>
                                 <span class="score">Puntuación: <strong>${area.score.toFixed(2)} / 5</strong></span>
                             </div>
-                            <p class="level">${area.level.name} (${area.level.code})</p>
+                            <p class="level">Nivel Actual: ${area.level.name}</p>
                         </div>
                         <div class="area-body">
+                            <h4>Plan de Crecimiento:</h4>
                             ${formatPlanContentHTML(areaPlans[area.id]?.content || '')}
                         </div>
                     </div>
@@ -437,7 +364,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
   }, [allPlansGenerated, planSummary, areaScores, areaPlans, radarChartData]);
 
   const renderPlanSummary = () => {
-    if (!planSummary.isLoading && !planSummary.content && !planSummary.error) return null;
+    if (!planSummary.content) return null;
     
     const lines = planSummary.content.split('\n');
     const title = lines[0] || 'Plan de Desarrollo Profesional';
@@ -446,8 +373,8 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-md mt-8">
-            {planSummary.isLoading ? (
-                <PlanSkeletonLoader />
+            {planSummary.isLoading ? ( // This case is now unlikely but kept for safety
+                <div className="text-center text-slate-500">Generando...</div>
             ) : planSummary.error ? (
                  <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">{planSummary.error}</div>
             ) : (
@@ -471,8 +398,8 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
       <div className="mt-8 max-w-4xl mx-auto space-y-8">
         {allQuestionsAnswered && (
             <div className="bg-sky-50 border border-sky-200 p-4 rounded-xl text-center shadow-sm">
-                <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General</p>
-                <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name} <span className="text-lg font-medium text-slate-500">({overallLevel.code})</span></h2>
+                <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">Nivel de Competencia General (Taxonomía de Bloom)</p>
+                <h2 className="text-2xl font-bold text-slate-800 mt-1">{overallLevel.name}</h2>
                 <p className="text-sm text-slate-600 mt-2 max-w-xl mx-auto">{overallLevel.description}</p>
             </div>
         )}
@@ -515,7 +442,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
         <div className="bg-white p-6 rounded-xl shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-700">Plan de Desarrollo Profesional con IA</h2>
+                    <h2 className="text-xl font-bold text-slate-700">Plan de Desarrollo Profesional</h2>
                     <p className="mt-1 text-sm text-slate-500">
                         {allQuestionsAnswered 
                         ? "Genera un plan de acción personalizado basado en tus resultados." 
@@ -525,15 +452,15 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                 <div className="flex flex-col sm:flex-row gap-2">
                     <button 
                         onClick={handleGeneratePlanClick}
-                        disabled={!allQuestionsAnswered || isGeneratingPlans}
+                        disabled={!allQuestionsAnswered}
                         className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-brand-accent border border-transparent rounded-lg shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
                     >
                         <SparklesIcon className="h-5 w-5"/>
-                        <span>{isGeneratingPlans ? "Generando Planes..." : "Generar Plan"}</span>
+                        <span>Generar Plan</span>
                     </button>
                     <button
                         onClick={handleDownloadPlan}
-                        disabled={!allPlansGenerated || isGeneratingPlans}
+                        disabled={!allPlansGenerated}
                         className="flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-brand-primary border border-transparent rounded-lg shadow-sm hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
                     >
                         <DownloadIcon className="h-5 w-5"/>
@@ -558,7 +485,7 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                         <div className="p-5">
                             <h3 className="text-lg font-semibold text-slate-800">{area.title}</h3>
                             <div className="flex justify-between items-baseline mt-2">
-                                <p className="font-bold text-slate-700">{area.level.name} ({area.level.code})</p>
+                                <p className="font-bold text-slate-700">Nivel Actual: {area.level.name}</p>
                                 <p className="text-sm text-slate-500">Puntuación: <span className="font-semibold text-slate-700">{area.score.toFixed(2)} / 5</span></p>
                             </div>
                         </div>
@@ -572,11 +499,14 @@ export const Results: React.FC<ResultsProps> = ({ answers, areas, planSummary, s
                             ) : (
                                 <>
                                     <p className="text-sm text-slate-600 mb-4 italic">"{area.level.description}"</p>
-                                    <h4 className="text-sm font-bold text-slate-600">Sugerencias de la IA para tu desarrollo:</h4>
-                                    <div className="mt-4">
-                                        {plan?.isLoading && <PlanSkeletonLoader />}
+                                    <h4 className="text-sm font-bold text-slate-600">Plan de Crecimiento:</h4>
+                                    <div className="mt-2">
                                         {plan?.error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{plan.error}</div>}
-                                        {plan?.content && <FormattedPlanContent content={plan.content} />}
+                                        {plan?.content ? <FormattedPlanContent content={plan.content} /> : (
+                                            <div className="p-3 bg-slate-100 border border-slate-200 rounded-md text-sm text-slate-600 text-center">
+                                                Haz clic en "Generar Plan" para ver las sugerencias.
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}

@@ -59,6 +59,15 @@ const options = [
   "Soy un referente para otros en su uso"
 ];
 
+export const BLOOM_TAXONOMY = [
+    { index: 0, name: 'Recordar', key: 'recordar', description: 'Reconocer y traer a la memoria información y herramientas digitales básicas.' },
+    { index: 1, name: 'Comprender', key: 'comprender', description: 'Construir un significado a partir de la información y explicar el porqué de una práctica digital.' },
+    { index: 2, name: 'Aplicar', key: 'aplicar', description: 'Usar procedimientos y herramientas digitales en una situación determinada para lograr un objetivo.' },
+    { index: 3, name: 'Analizar', key: 'analizar', description: 'Descomponer la información en sus partes constituyentes y detectar cómo se relacionan entre sí.' },
+    { index: 4, name: 'Evaluar', key: 'evaluar', description: 'Hacer juicios críticos basados en criterios y estándares sobre prácticas y herramientas digitales.' },
+    { index: 5, name: 'Crear', key: 'crear', description: 'Generar ideas, productos o enfoques pedagógicos nuevos y originales utilizando tecnologías.' },
+];
+
 export const AREAS: Area[] = [
   {
     id: 1,
